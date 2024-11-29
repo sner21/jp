@@ -5,25 +5,97 @@ import 'storage_interface.dart';
 
 class StorageManager implements StorageInterface {
   final SupabaseClient _supabase;
-  late Box<Word> _wordBox;
+  Box<Word>? _wordBox;
   bool get isLoggedIn => _supabase.auth.currentUser != null;
 
-  StorageManager(this._supabase) {
-    _initHive();
+  StorageManager(this._supabase);
+
+  Future<void> init() async {
+    if (_wordBox == null) {
+      _wordBox = await Hive.openBox<Word>('words');
+    }
   }
 
-  Future<void> _initHive() async {
-    await Hive.openBox<Word>('words').then((box) async {
-      // 可选：迁移现有数据
-      for (var word in box.values) {
-        final updatedWord = word.copyWith(isNewWord: false);
-        await box.put(word.id, updatedWord);
+  @override
+  Future<List<Word>> getAllWords() async {
+    await init();
+    
+    if (isLoggedIn) {
+      try {
+        final response = await _supabase
+            .from('words')
+            .select()
+            .eq('user_id', _supabase.auth.currentUser!.id);
+        
+        return (response as List).map((json) => Word(
+              id: json['id'].toString(),
+              japanese: json['japanese'],
+              pronunciation: json['pronunciation'],
+              meaning: json['meaning'],
+              category: json['category'],
+            )).toList();
+      } catch (e) {
+        return _wordBox!.values.toList();
       }
-    });
+    }
+    return _wordBox!.values.toList();
+  }
+
+  @override
+  Future<void> addWord(Word word) async {
+    await init();
+    
+    if (isLoggedIn) {
+      final response = await _supabase.from('words').insert({
+        'japanese': word.japanese,
+        'pronunciation': word.pronunciation,
+        'meaning': word.meaning,
+        'category': word.category,
+        'user_id': _supabase.auth.currentUser!.id,
+      }).select();
+      
+      if (response != null && response.isNotEmpty) {
+        final newWord = word.copyWith(id: response[0]['id'].toString());
+        await _wordBox!.put(newWord.id, newWord);
+      }
+    } else {
+      final newWord = word.copyWith(
+        id: DateTime.now().millisecondsSinceEpoch.toString()
+      );
+      await _wordBox!.put(newWord.id, newWord);
+    }
+  }
+
+  @override
+  Future<void> updateWord(Word word) async {
+    await init();
+    if (word.id == null) return;
+    
+    if (isLoggedIn) {
+      await _supabase.from('words').update({
+        'japanese': word.japanese,
+        'pronunciation': word.pronunciation,
+        'meaning': word.meaning,
+        'category': word.category,
+      }).eq('id', word.id!);
+    }
+    await _wordBox!.put(word.id, word);
+  }
+
+  @override
+  Future<void> deleteWord(String? id) async {
+    await init();
+    if (id == null) return;
+    
+    if (isLoggedIn) {
+      await _supabase.from('words').delete().eq('id', id);
+    }
+    await _wordBox!.delete(id);
   }
 
   @override
   Future<List<String>> getAllCategories() async {
+    await init();
     final words = await getAllWords();
     return words
         .map((word) => word.category)
@@ -35,12 +107,14 @@ class StorageManager implements StorageInterface {
 
   @override
   Future<List<Word>> getWordsByCategory(String category) async {
+    await init();
     final words = await getAllWords();
     return words.where((word) => word.category == category).toList();
   }
 
   @override
   Future<List<Word>> searchWords(String query) async {
+    await init();
     final allWords = await getAllWords();
     final lowercaseQuery = query.toLowerCase();
     
@@ -51,108 +125,67 @@ class StorageManager implements StorageInterface {
     }).toList();
   }
 
-  Future<List<Word>> getAllWords() async {
-    if (isLoggedIn) {
-      try {
-        final response = await _supabase
-            .from('words')
-            .select()
-            .eq('user_id', _supabase.auth.currentUser!.id);
-        
-        return (response as List)
-            .map((json) => Word(
-                  id: json['id'],
-                  japanese: json['japanese'],
-                  pronunciation: json['pronunciation'],
-                  meaning: json['meaning'],
-                  category: json['category'],
-                ))
-            .toList();
-      } catch (e) {
-        print('Error loading from Supabase: $e');
-        return [];
-      }
-    } else {
-      return _wordBox.values.toList();
-    }
-  }
-
-  Future<void> addWord(Word word) async {
-    if (isLoggedIn) {
-      final response = await _supabase.from('words').insert({
-        'japanese': word.japanese,
-        'pronunciation': word.pronunciation,
-        'meaning': word.meaning,
-        'category': word.category,
-        'user_id': _supabase.auth.currentUser!.id,
-      }).select();
-      
-      if (response != null && response.isNotEmpty) {
-        final newWord = word.copyWith(id: response[0]['id']);
-        await _wordBox.put(newWord.id, newWord);
-      }
-    } else {
-      final newWord = word.copyWith(
-        id: DateTime.now().millisecondsSinceEpoch.toString()
-      );
-      await _wordBox.put(newWord.id, newWord);
-    }
-  }
-
-  @override
-  Future<void> updateWord(Word word) async {
-    if (word.id == null) return;
-    
-    if (isLoggedIn) {
-      await _supabase.from('words').update({
-        'japanese': word.japanese,
-        'pronunciation': word.pronunciation,
-        'meaning': word.meaning,
-        'category': word.category,
-      }).eq('id', word.id!);
-    } else {
-      await _wordBox.put(word.id, word);
-    }
-  }
-
-  @override
-  Future<void> deleteWord(String? id) async {
-    if (id == null) return;
-    
-    if (isLoggedIn) {
-      await _supabase.from('words').delete().eq('id', id);
-    } else {
-      await _wordBox.delete(id);
-    }
-  }
-
-  // 添加数据同步方法
   Future<void> syncToCloud() async {
+    await init();
     if (!isLoggedIn) return;
-
-    final localWords = _wordBox.values.toList();
-    for (final word in localWords) {
-      await _supabase.from('words').insert({
-        'japanese': word.japanese,
-        'pronunciation': word.pronunciation,
-        'meaning': word.meaning,
-        'category': word.category,
-        'user_id': _supabase.auth.currentUser!.id,
-      });
-    }
     
-    // 清空本地数据
-    await _wordBox.clear();
+    try {
+      final cloudResponse = await _supabase
+          .from('words')
+          .select()
+          .eq('user_id', _supabase.auth.currentUser!.id);
+      
+      if (cloudResponse.isNotEmpty) {
+        throw Exception('云端已有数据，请选择同步方向');
+      }
+
+      final localWords = _wordBox!.values.toList();
+      for (final word in localWords) {
+        final response = await _supabase.from('words').insert({
+          'japanese': word.japanese,
+          'pronunciation': word.pronunciation,
+          'meaning': word.meaning,
+          'category': word.category,
+          'user_id': _supabase.auth.currentUser!.id,
+        }).select();
+        
+        if (response != null && response.isNotEmpty) {
+          final cloudId = response[0]['id'].toString();
+          await _wordBox!.delete(word.id);
+          await _wordBox!.put(cloudId, word.copyWith(id: cloudId));
+        }
+      }
+    } catch (e) {
+      print('Sync to cloud error: $e');
+      rethrow;
+    }
   }
 
-  // 添加从云端同步到本地的方法
   Future<void> syncToLocal() async {
-    if (isLoggedIn) return;
-
-    final cloudWords = await getAllWords();
-    await _wordBox.clear();
-    for (final word in cloudWords) {
-      await _wordBox.put(word.id, word);
+    await init();
+    if (!isLoggedIn) return;
+    
+    try {
+      final response = await _supabase
+          .from('words')
+          .select()
+          .eq('user_id', _supabase.auth.currentUser!.id);
+      
+      await _wordBox!.clear();
+      
+      for (final item in response) {
+        final word = Word(
+          id: item['id'].toString(),
+          japanese: item['japanese'],
+          pronunciation: item['pronunciation'],
+          meaning: item['meaning'],
+          category: item['category'],
+        );
+        await _wordBox!.put(word.id, word);
+      }
+    } catch (e) {
+      print('Sync to local error: $e');
+      rethrow;
     }
   }
 } 

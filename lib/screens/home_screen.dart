@@ -86,10 +86,43 @@ class HomeScreen extends StatelessWidget {
       );
       
       if (result == true && context.mounted) {
-        await storageManager.syncToCloud();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('登录成功，数据已同步到云端')),
-        );
+        try {
+          await storageManager.syncToCloud();
+        } catch (e) {
+          if (e.toString().contains('云端已有数据')) {
+            if (context.mounted) {
+              final syncChoice = await showDialog<String>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('数据同步'),
+                  content: const Text('检测到云端已有数据，请选择同步方式：'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'local'),
+                      child: const Text('使用本地数据'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'cloud'),
+                      child: const Text('使用云端数据'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (syncChoice == 'local') {
+                await storageManager.syncToCloud();
+              } else if (syncChoice == 'cloud') {
+                await storageManager.syncToLocal();
+              }
+            }
+          }
+        }
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('登录成功，数据已同步')),
+          );
+        }
       }
     }
   }
