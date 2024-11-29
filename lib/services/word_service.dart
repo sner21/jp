@@ -1,59 +1,65 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/word.dart';
 
 class WordService {
-  static const String boxName = 'words';
-  
-  Future<Box<Word>> get _box async => await Hive.openBox<Word>(boxName);
+  final SupabaseClient _supabase;
 
-  // 添加单词
-  Future<void> addWord(Word word) async {
-    final box = await _box;
-    await box.put(word.id, word);
-  }
+  WordService(this._supabase);
 
-  // 获取所有单词
   Future<List<Word>> getAllWords() async {
-    final box = await _box;
-    return box.values.toList();
+    final response = await _supabase
+        .from('words')
+        .select()
+        .eq('user_id', _supabase.auth.currentUser?.id)
+        .order('created_at');
+
+    return (response as List)
+        .map((word) => Word.fromJson(word))
+        .toList();
   }
 
-  // 获取指定分类的单词
-  Future<List<Word>> getWordsByCategory(String category) async {
-    final box = await _box;
-    return box.values.where((word) => word.category == category).toList();
+  Future<void> addWord(Word word) async {
+    await _supabase.from('words').insert({
+      'japanese': word.japanese,
+      'pronunciation': word.pronunciation,
+      'meaning': word.meaning,
+      'category': word.category,
+      'user_id': _supabase.auth.currentUser?.id,
+    });
   }
 
-  // 搜索单词
-  Future<List<Word>> searchWords(String query) async {
-    final box = await _box;
-    return box.values.where((word) => 
-      word.japanese.contains(query) ||
-      word.pronunciation.contains(query) ||
-      word.meaning.contains(query)
-    ).toList();
-  }
-
-  // 更新单词
   Future<void> updateWord(Word word) async {
-    final box = await _box;
-    await box.put(word.id, word);
+    await _supabase
+        .from('words')
+        .update({
+          'japanese': word.japanese,
+          'pronunciation': word.pronunciation,
+          'meaning': word.meaning,
+          'category': word.category,
+        })
+        .eq('id', word.id)
+        .eq('user_id', _supabase.auth.currentUser?.id);
   }
 
-  // 删除单词
   Future<void> deleteWord(String id) async {
-    final box = await _box;
-    await box.delete(id);
+    await _supabase
+        .from('words')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', _supabase.auth.currentUser?.id);
   }
 
-  // 获取所有分类
-  Future<List<String>> getAllCategories() async {
-    final box = await _box;
-    return box.values
-        .map((word) => word.category)
-        .where((category) => category != null)
-        .toSet()
-        .cast<String>()
+  Future<List<Word>> searchWords(String query) async {
+    final response = await _supabase
+        .from('words')
+        .select()
+        .eq('user_id', _supabase.auth.currentUser?.id)
+        .ilike('japanese', '%' + query + '%')
+        .or.ilike('pronunciation', '%' + query + '%')
+        .or.ilike('meaning', '%' + query + '%');
+
+    return (response as List)
+        .map((word) => Word.fromJson(word))
         .toList();
   }
 } 

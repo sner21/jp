@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import '../models/word.dart';
-import '../services/word_service.dart';
+import '../services/storage_manager.dart';
+import '../services/tts_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VocabularyScreen extends StatefulWidget {
   const VocabularyScreen({super.key});
 
   @override
+    // 创建状态，类似于React的state初始化
   State<VocabularyScreen> createState() => _VocabularyScreenState();
 }
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
-  final WordService _wordService = WordService();
+  final StorageManager _storageManager = StorageManager(Supabase.instance.client);
+  final TTSService _ttsService = TTSService();
+  
   List<Word> _words = [];
   List<Word> _filteredWords = [];
   String? _selectedCategory;
@@ -19,37 +24,50 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   bool _showMeaning = true;
   bool _showJapanese = true;
   bool _showPronunciation = true;
+  bool _ttsAvailable = false;
 
   @override
+    // 类似于React的componentDidMount
   void initState() {
     super.initState();
     _loadWords();
+    _checkTTS();
+    // 监听登录状态变化
+    Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      if (event.event == AuthChangeEvent.signedIn) {
+        _storageManager.syncData();  // 登录时同步数据
+      }
+      _loadWords();  // 重新加载数据
+    });
   }
-
+  // 类似于React中的异步数据加载函数
   Future<void> _loadWords() async {
-    final words = await _wordService.getAllWords();
+    final words = await _storageManager.getAllWords();
+       // 类似于React的setState
     setState(() {
       _words = words;
       _filteredWords = words;
       _currentWordIndex = 0;
     });
   }
-
+  // 类似于React中的搜索过滤函数
   void _filterWords(String query) async {
     if (query.isEmpty) {
       _loadWords();
     } else {
-      final results = await _wordService.searchWords(query);
+      final results = await _storageManager.searchWords(query);
       setState(() {
         _filteredWords = results;
         _currentWordIndex = 0;
       });
     }
   }
-
+  // 类似于React的子组件或UI片段
   Widget _buildHeader() {
+      // Container类似于div
     return Container(
       padding: const EdgeInsets.all(16.0),
+          // decoration类似于CSS样式
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -61,6 +79,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           ),
         ],
       ),
+        // Column类似于flex-direction: column
       child: Column(
         children: [
           _buildSearchBar(),
@@ -70,8 +89,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       ),
     );
   }
-
+ // 搜索框组件，类似于React的搜索输入框组件
   Widget _buildSearchBar() {
+        // TextField类似于HTML的input
     return TextField(
       decoration: InputDecoration(
         hintText: '搜索单词...',
@@ -98,13 +118,14 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         fillColor: Colors.grey.shade50,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
+        // onChange事件监听
       onChanged: _filterWords,
     );
   }
-
+  // 下拉菜单组件，类似于React的Select组件
   Widget _buildCategoryDropdown() {
     return FutureBuilder<List<String>>(
-      future: _wordService.getAllCategories(),
+      future: _storageManager.getAllCategories(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
         
@@ -123,19 +144,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 value: _selectedCategory,
                 hint: const Text('选择分类'),
                 isExpanded: true,
-                icon: const Icon(Icons.arrow_drop_down),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 items: categories.map((category) {
                   return DropdownMenuItem(
                     value: category == '全部' ? null : category,
-                    child: Text(
-                      category,
-                      style: TextStyle(
-                        color: _selectedCategory == category 
-                            ? Colors.blue 
-                            : Colors.black87,
-                      ),
-                    ),
+                    child: Text(category),
                   );
                 }).toList(),
                 onChanged: (value) async {
@@ -143,9 +156,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                     _selectedCategory = value;
                   });
                   if (value == null || value == '全部') {
-                    _loadWords();
+                    await _loadWords();
                   } else {
-                    final words = await _wordService.getWordsByCategory(value);
+                    final words = await _storageManager.getWordsByCategory(value);
                     setState(() {
                       _filteredWords = words;
                       _currentWordIndex = 0;
@@ -159,17 +172,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       },
     );
   }
-
+  // 弹窗组件，类似于React的Modal组件
   void _showAddWordDialog([Word? wordToEdit]) {
     final TextEditingController japaneseController = TextEditingController(text: wordToEdit?.japanese);
     final TextEditingController pronunciationController = TextEditingController(text: wordToEdit?.pronunciation);
     final TextEditingController meaningController = TextEditingController(text: wordToEdit?.meaning);
     final TextEditingController categoryController = TextEditingController(text: wordToEdit?.category);
-
+// showDialog类似于React的Modal.show()
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
+                // ... 弹窗内容
           title: Text(wordToEdit == null ? '添加新单词' : '编辑单词'),
           content: SingleChildScrollView(
             child: Column(
@@ -213,9 +227,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   );
 
                   if (wordToEdit == null) {
-                    await _wordService.addWord(word);
+                    await _storageManager.addWord(word);
                   } else {
-                    await _wordService.updateWord(word);
+                    await _storageManager.updateWord(word);
                   }
 
                   _loadWords();
@@ -249,7 +263,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               leading: const Icon(Icons.delete, color: Colors.red),
               title: const Text('删除', style: TextStyle(color: Colors.red)),
               onTap: () async {
-                await _wordService.deleteWord(word.id);
+                await _storageManager.deleteWord(word.id);
                 _loadWords();
                 Navigator.pop(context);
               },
@@ -259,12 +273,20 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       },
     );
   }
-
+  // build方法类似于React的render
   @override
   Widget build(BuildContext context) {
+    // Scaffold类似于页面的基础布局容器
     return Scaffold(
       appBar: AppBar(
         title: const Text('生词本'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+            tooltip: '登出',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -276,6 +298,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           ),
         ],
       ),
+       // FloatingActionButton类似于固定位置的悬浮按钮
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddWordDialog(),
         child: const Icon(Icons.add),
@@ -422,8 +445,17 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.volume_up),
+                    onPressed: _ttsAvailable 
+                        ? () => _ttsService.speak(word.pronunciation)
+                        : null,
+                    tooltip: _ttsAvailable 
+                        ? '播放假名发音' 
+                        : '语音功能不可用',
+                  ),
                   IconButton(
                     icon: Icon(
                       word.isNewWord ? Icons.bookmark : Icons.bookmark_border,
@@ -434,16 +466,44 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 ],
               ),
               if (_showJapanese)
-                Text(
-                  word.japanese,
-                  style: const TextStyle(fontSize: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      word.japanese,
+                      style: const TextStyle(fontSize: 32),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.volume_up, size: 20),
+                      onPressed: _ttsAvailable 
+                          ? () => _ttsService.speak(word.japanese)
+                          : null,
+                      tooltip: _ttsAvailable 
+                          ? '播放汉字发音' 
+                          : '语音功能不可用',
+                    ),
+                  ],
                 ),
               if (_showJapanese && _showPronunciation)
                 const SizedBox(height: 10),
               if (_showPronunciation)
-                Text(
-                  word.pronunciation,
-                  style: const TextStyle(fontSize: 24, color: Colors.grey),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      word.pronunciation,
+                      style: const TextStyle(fontSize: 24, color: Colors.grey),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.volume_up, size: 20),
+                      onPressed: _ttsAvailable 
+                          ? () => _ttsService.speak(word.pronunciation)
+                          : null,
+                      tooltip: _ttsAvailable 
+                          ? '播放假名发音' 
+                          : '语音功能不可用',
+                    ),
+                  ],
                 ),
               if (_showMeaning)
                 const SizedBox(height: 20),
@@ -463,5 +523,27 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     setState(() {
       word.isNewWord = !word.isNewWord;
     });
+  }
+
+  Future<void> _checkTTS() async {
+    final available = await _ttsService.isLanguageAvailable;
+    setState(() {
+      _ttsAvailable = available;
+    });
+  }
+
+  Future<void> _logout() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('登出失败，请稍后重试')),
+        );
+      }
+    }
   }
 } 

@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
 
 part 'word.g.dart';
 
@@ -23,11 +24,33 @@ class Word {
   String? category;
 
   Word({
-    required this.id,
+    String? id,
     required this.japanese,
     required this.pronunciation,
     required this.meaning,
     this.isNewWord = false,
     this.category,
-  });
+  }) : id = id ?? const Uuid().v4();
+
+  factory Word.fromJson(Map<String, dynamic> json) {
+    return Word(
+      id: json['id'] as String,
+      japanese: json['japanese'] as String,
+      pronunciation: json['pronunciation'] as String,
+      meaning: json['meaning'] as String,
+      category: json['category'] as String?,
+      isNewWord: json['is_new_word'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'japanese': japanese,
+      'pronunciation': pronunciation,
+      'meaning': meaning,
+      'category': category,
+      'is_new_word': isNewWord,
+    };
+  }
 } 
