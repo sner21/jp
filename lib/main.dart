@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
      // 返回MaterialApp，类似于React Router的配置
     return MaterialApp(
-      title: '日语学习助手',
+      title: '日语学习助手 ',
        // theme类似于前端的全局CSS或主题配置
       theme: ThemeData(
         primarySwatch: Colors.blue,

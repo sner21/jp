@@ -273,7 +273,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               leading: const Icon(Icons.delete, color: Colors.red),
               title: const Text('删除', style: TextStyle(color: Colors.red)),
               onTap: () async {
-                await _deleteWord(word);
+                await _storageManager.deleteWord(word.id);
+                _loadWords();
                 Navigator.pop(context);
               },
             ),
@@ -552,38 +553,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('登出失败，请稍后试')),
         );
-      }
-    }
-  }
-
-  Future<void> _deleteWord(Word word) async {
-    if (word.id == null) return;  // 如果id为空，直接返回
-    
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: const Text('确定要删除这个单词吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _storageManager.deleteWord(word.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('单词已删除')),
-        );
-        _loadWords();
       }
     }
   }
