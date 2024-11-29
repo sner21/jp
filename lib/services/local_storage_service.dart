@@ -26,7 +26,8 @@ class LocalStorageService implements StorageInterface {
   }
 
   @override
-  Future<void> deleteWord(String id) async {
+  Future<void> deleteWord(String? id) async {
+    if (id == null) return;
     final box = await _box;
     await box.delete(id);
   }

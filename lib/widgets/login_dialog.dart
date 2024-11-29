@@ -14,6 +14,13 @@ class _LoginDialogState extends State<LoginDialog> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -27,7 +34,7 @@ class _LoginDialogState extends State<LoginDialog> {
         password: _passwordController.text.trim(),
       );
       if (mounted) {
-        Navigator.of(context).pop(true); // 返回true表示登录成功
+        Navigator.of(context).pop(true);
       }
     } on AuthException catch (e) {
       if (mounted) {
@@ -80,6 +87,7 @@ class _LoginDialogState extends State<LoginDialog> {
               decoration: const InputDecoration(
                 labelText: '密码',
               ),
+              obscureText: true,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return '请输入密码';
@@ -98,7 +106,11 @@ class _LoginDialogState extends State<LoginDialog> {
         ElevatedButton(
           onPressed: _isLoading ? null : _login,
           child: _isLoading
-              ? const CircularProgressIndicator()
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Text('登录'),
         ),
       ],

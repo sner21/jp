@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/word.dart';
 import '../services/storage_manager.dart';
 import '../services/tts_service.dart';
@@ -31,23 +32,32 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   void initState() {
     super.initState();
     _loadWords();
-    _checkTTS();
+    if (!kIsWeb) {
+      _checkTTS();
+    }
     // 监听登录状态变化
     Supabase.instance.client.auth.onAuthStateChange.listen((event) {
       if (event.event == AuthChangeEvent.signedIn) {
-        _storageManager.syncData();  // 登录时同步数据
+        _storageManager.syncToCloud();  // 登录时同步数据
       }
       _loadWords();  // 重新加载数据
     });
   }
   // 类似于React中的异步数据加载函数
   Future<void> _loadWords() async {
+    if (!mounted) return;  // 添加mounted检查
+    
     final words = await _storageManager.getAllWords();
-       // 类似于React的setState
+    if (!mounted) return;  // 再次检查mounted
+    
     setState(() {
       _words = words;
-      _filteredWords = words;
-      _currentWordIndex = 0;
+      _filteredWords = _selectedCategory == null
+          ? words
+          : words.where((word) => word.category == _selectedCategory).toList();
+      if (_currentWordIndex >= _filteredWords.length) {
+        _currentWordIndex = _filteredWords.isEmpty ? 0 : _filteredWords.length - 1;
+      }
     });
   }
   // 类似于React中的搜索过滤函数
@@ -263,8 +273,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               leading: const Icon(Icons.delete, color: Colors.red),
               title: const Text('删除', style: TextStyle(color: Colors.red)),
               onTap: () async {
-                await _storageManager.deleteWord(word.id);
-                _loadWords();
+                await _deleteWord(word);
                 Navigator.pop(context);
               },
             ),
@@ -541,9 +550,48 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('登出失败，请稍后重试')),
+          const SnackBar(content: Text('登出失败，请稍后试')),
         );
       }
     }
+  }
+
+  Future<void> _deleteWord(Word word) async {
+    if (word.id == null) return;  // 如果id为空，直接返回
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: const Text('确定要删除这个单词吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _storageManager.deleteWord(word.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('单词已删除')),
+        );
+        _loadWords();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    // 确保在dispose时取消所有可能的异步操作
+    _ttsService.stop();
+    super.dispose();
   }
 } 

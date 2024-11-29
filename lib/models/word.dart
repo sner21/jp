@@ -1,12 +1,11 @@
 import 'package:hive/hive.dart';
-import 'package:uuid/uuid.dart';
 
 part 'word.g.dart';
 
 @HiveType(typeId: 0)
-class Word {
+class Word extends HiveObject {
   @HiveField(0)
-  final String id;
+  String? id;
 
   @HiveField(1)
   final String japanese;
@@ -18,39 +17,42 @@ class Word {
   final String meaning;
 
   @HiveField(4)
-  bool isNewWord;
+  final String? category;
 
   @HiveField(5)
-  String? category;
+  bool _isNewWord;
 
   Word({
-    String? id,
+    this.id,
     required this.japanese,
     required this.pronunciation,
     required this.meaning,
-    this.isNewWord = false,
     this.category,
-  }) : id = id ?? const Uuid().v4();
+    bool isNewWord = false,
+  }) : _isNewWord = isNewWord;
 
-  factory Word.fromJson(Map<String, dynamic> json) {
-    return Word(
-      id: json['id'] as String,
-      japanese: json['japanese'] as String,
-      pronunciation: json['pronunciation'] as String,
-      meaning: json['meaning'] as String,
-      category: json['category'] as String?,
-      isNewWord: json['is_new_word'] as bool? ?? false,
-    );
+  bool get isNewWord => _isNewWord;
+
+  set isNewWord(bool value) {
+    _isNewWord = value;
+    save();
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'japanese': japanese,
-      'pronunciation': pronunciation,
-      'meaning': meaning,
-      'category': category,
-      'is_new_word': isNewWord,
-    };
+  Word copyWith({
+    String? id,
+    String? japanese,
+    String? pronunciation,
+    String? meaning,
+    String? category,
+    bool? isNewWord,
+  }) {
+    return Word(
+      id: id ?? this.id,
+      japanese: japanese ?? this.japanese,
+      pronunciation: pronunciation ?? this.pronunciation,
+      meaning: meaning ?? this.meaning,
+      category: category ?? this.category,
+      isNewWord: isNewWord ?? this._isNewWord,
+    );
   }
 } 
