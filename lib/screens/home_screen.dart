@@ -53,7 +53,7 @@ class HomeScreen extends StatelessWidget {
         color: Colors.white,
       ),
       label: Text(
-        isLoggedIn ? '登出' : '登录',
+        isLoggedIn ? '登出123' : '登录',
         style: const TextStyle(color: Colors.white),
       ),
       onPressed: () => _handleAuthAction(context, isLoggedIn),
@@ -87,10 +87,28 @@ class HomeScreen extends StatelessWidget {
       
       if (result == true && context.mounted) {
         try {
-          await storageManager.syncToCloud();
-        } catch (e) {
-          if (e.toString().contains('云端已有数据')) {
+          // 显示加载指示器
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+
+          try {
+            await storageManager.syncToCloud();
+            // 关闭加载指示器
             if (context.mounted) {
+              Navigator.of(context).pop();
+            }
+          } catch (e) {
+            // 关闭加载指示器
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
+
+            if (e.toString().contains('SYNC_CONFLICT') && context.mounted) {
               final syncChoice = await showDialog<String>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -105,23 +123,64 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () => Navigator.pop(context, 'cloud'),
                       child: const Text('使用云端数据'),
                     ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'cancel'),
+                      child: const Text('取消'),
+                    ),
                   ],
                 ),
               );
 
               if (syncChoice == 'local') {
+                // 显示加载指示器
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
                 await storageManager.syncToCloud();
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
               } else if (syncChoice == 'cloud') {
+                // 显示加载指示器
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
                 await storageManager.syncToLocal();
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
               }
+              // 如果选择 'cancel'，什么都不做
+            } else {
+              // 处理其他错误
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('同步失败，请稍后重试')),
+                );
+              }
+              rethrow;
             }
           }
-        }
-        
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('登录成功，数据已同步')),
-          );
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('登录成功，数据已同步')),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('操作失败，请稍后重试')),
+            );
+          }
         }
       }
     }

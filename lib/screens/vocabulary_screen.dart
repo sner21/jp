@@ -16,6 +16,7 @@ class VocabularyScreen extends StatefulWidget {
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final StorageManager _storageManager = StorageManager(Supabase.instance.client);
   final TTSService _ttsService = TTSService();
+  bool _isTTSAvailable = false;
   
   List<Word> _words = [];
   List<Word> _filteredWords = [];
@@ -25,16 +26,13 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   bool _showMeaning = true;
   bool _showJapanese = true;
   bool _showPronunciation = true;
-  bool _ttsAvailable = false;
 
   @override
     // 类似于React的componentDidMount
   void initState() {
     super.initState();
     _loadWords();
-    if (!kIsWeb) {
-      _checkTTS();
-    }
+    _checkTTS();
     // 监听登录状态变化
     Supabase.instance.client.auth.onAuthStateChange.listen((event) {
       if (event.event == AuthChangeEvent.signedIn) {
@@ -457,15 +455,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.volume_up),
-                    onPressed: _ttsAvailable 
-                        ? () => _ttsService.speak(word.pronunciation)
-                        : null,
-                    tooltip: _ttsAvailable 
-                        ? '播放假名发音' 
-                        : '语音功能不可用',
-                  ),
+                  _buildTTSButton(word.pronunciation),
                   IconButton(
                     icon: Icon(
                       word.isNewWord ? Icons.bookmark : Icons.bookmark_border,
@@ -483,15 +473,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                       word.japanese,
                       style: const TextStyle(fontSize: 32),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.volume_up, size: 20),
-                      onPressed: _ttsAvailable 
-                          ? () => _ttsService.speak(word.japanese)
-                          : null,
-                      tooltip: _ttsAvailable 
-                          ? '播放汉字发音' 
-                          : '语音功能不可用',
-                    ),
+                    _buildTTSButton(word.japanese),
                   ],
                 ),
               if (_showJapanese && _showPronunciation)
@@ -504,15 +486,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                       word.pronunciation,
                       style: const TextStyle(fontSize: 24, color: Colors.grey),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.volume_up, size: 20),
-                      onPressed: _ttsAvailable 
-                          ? () => _ttsService.speak(word.pronunciation)
-                          : null,
-                      tooltip: _ttsAvailable 
-                          ? '播放假名发音' 
-                          : '语音功能不可用',
-                    ),
+                    _buildTTSButton(word.pronunciation),
                   ],
                 ),
               if (_showMeaning)
@@ -536,10 +510,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   }
 
   Future<void> _checkTTS() async {
-    final available = await _ttsService.isLanguageAvailable;
-    setState(() {
-      _ttsAvailable = available;
-    });
+    final available = await _ttsService.isAvailable;
+    if (mounted) {
+      setState(() {
+        _isTTSAvailable = available;
+      });
+    }
   }
 
   Future<void> _logout() async {
@@ -562,5 +538,33 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     // 确保在dispose时取消所有可能的异步操作
     _ttsService.stop();
     super.dispose();
+  }
+
+  Widget _buildTTSButton(String text) {
+    return IconButton(
+      icon: const Icon(Icons.volume_up),
+      onPressed: () async {
+        try {
+          await _ttsService.speak(text);
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('发音播放失败，请检查网络连接')),
+            );
+          }
+        }
+      },
+      tooltip: '播放发音',
+    );
+  }
+
+  // 可以在设置页面添加清理缓存的选项
+  Future<void> _clearTTSCache() async {
+    await _ttsService.clearCache();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('语音缓存已清理')),
+      );
+    }
   }
 } 
