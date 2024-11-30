@@ -29,20 +29,25 @@ class _LoginDialogState extends State<LoginDialog> {
     });
 
     try {
+      print('开始登录流程');
       await Supabase.instance.client.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      print('登录成功');
+
       if (mounted) {
         Navigator.of(context).pop(true);
       }
     } on AuthException catch (e) {
+      print('登录失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.message)),
         );
       }
     } catch (e) {
+      print('登录失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('登录失败，请稍后重试')),

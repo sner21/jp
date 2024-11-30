@@ -2,6 +2,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/word.dart';
 import 'storage_interface.dart';
+import 'package:flutter/foundation.dart';  // 添加这行
+import 'dart:developer' as developer;      // 添加这行
 
 class StorageManager implements StorageInterface {
   final SupabaseClient _supabase;
@@ -125,39 +127,52 @@ class StorageManager implements StorageInterface {
     }).toList();
   }
 
-  Future<void> syncToCloud() async {
-    await init();
-    if (!isLoggedIn) return;
-    
+  Future<void> syncToCloud({bool forceLocal = false}) async {
     try {
-      final cloudResponse = await _supabase
-          .from('words')
-          .select()
-          .eq('user_id', _supabase.auth.currentUser!.id);
+      debugPrint('开始同步到云端');
       
-      if (cloudResponse.isNotEmpty) {
-        throw Exception('云端已有数据，请选择同步方向');
+      // 先检查用户登录状态
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('用户未登录');
       }
 
-      final localWords = _wordBox!.values.toList();
-      for (final word in localWords) {
-        final response = await _supabase.from('words').insert({
-          'japanese': word.japanese,
-          'pronunciation': word.pronunciation,
-          'meaning': word.meaning,
-          'category': word.category,
-          'user_id': _supabase.auth.currentUser!.id,
-        }).select();
-        
-        if (response != null && response.isNotEmpty) {
-          final cloudId = response[0]['id'].toString();
-          await _wordBox!.delete(word.id);
-          await _wordBox!.put(cloudId, word.copyWith(id: cloudId));
+      // 获取本地数据
+      final box = await Hive.openBox<Word>('words');
+      final localWords = box.values.toList();
+      debugPrint('本地数据数量: ${localWords.length}');
+      
+      // 获取云端数据
+      final response = await _supabase
+          .from('words')
+          .select()
+          .eq('user_id', userId as String);  // 明确转换为非空字符串
+      final cloudData = response as List;
+      debugPrint('云端数据数量: ${cloudData.length}');
+
+      if (!forceLocal) {
+        if (cloudData.isNotEmpty && localWords.isNotEmpty) {
+          debugPrint('检测到数据冲突');
+          throw Exception('云端已有数据，请选择同步方向');
         }
       }
+
+      // 上传本地数据
+      if (localWords.isNotEmpty) {
+        final wordsWithUserId = localWords.map((word) {
+          final json = word.toJson();
+          json['user_id'] = userId;  // 使用非空的 userId
+          return json;
+        }).toList();
+
+        await _supabase
+            .from('words')
+            .upsert(wordsWithUserId);
+        debugPrint('数据上传成功');
+      }
     } catch (e) {
-      print('Sync to cloud error: $e');
-      rethrow;
+      debugPrint('同步失败: $e');
+      // rethrow;
     }
   }
 
@@ -184,7 +199,29 @@ class StorageManager implements StorageInterface {
         await _wordBox!.put(word.id, word);
       }
     } catch (e) {
-      print('Sync to local error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> uploadImportedWords(List<Word> words) async {
+    try {
+      // 获取当前用户ID
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('请先登录');
+      }
+
+      // 为每个单词添加用户ID并上传
+      final wordsWithUserId = words.map((word) {
+        final json = word.toJson();
+        json['user_id'] = userId;
+        return json;
+      }).toList();
+
+      await _supabase
+          .from('words')
+          .upsert(wordsWithUserId);
+    } catch (e) {
       rethrow;
     }
   }

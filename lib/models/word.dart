@@ -5,38 +5,31 @@ part 'word.g.dart';
 @HiveType(typeId: 0)
 class Word extends HiveObject {
   @HiveField(0)
-  String? id;
+  String id;
 
   @HiveField(1)
-  final String japanese;
+  String japanese;
 
   @HiveField(2)
-  final String pronunciation;
+  String pronunciation;
 
   @HiveField(3)
-  final String meaning;
+  String meaning;
 
   @HiveField(4)
-  final String? category;
+  String? category;
 
   @HiveField(5)
-  bool _isNewWord;
+  bool isNewWord;
 
   Word({
-    this.id,
+    required this.id,
     required this.japanese,
     required this.pronunciation,
     required this.meaning,
     this.category,
-    bool isNewWord = false,
-  }) : _isNewWord = isNewWord;
-
-  bool get isNewWord => _isNewWord;
-
-  set isNewWord(bool value) {
-    _isNewWord = value;
-    save();
-  }
+    this.isNewWord = true,
+  });
 
   Word copyWith({
     String? id,
@@ -52,7 +45,17 @@ class Word extends HiveObject {
       pronunciation: pronunciation ?? this.pronunciation,
       meaning: meaning ?? this.meaning,
       category: category ?? this.category,
-      isNewWord: isNewWord ?? this._isNewWord,
+      isNewWord: isNewWord ?? this.isNewWord,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'japanese': japanese,
+      'pronunciation': pronunciation,
+      'meaning': meaning,
+      'category': category,
+    };
   }
 } 

@@ -4,6 +4,12 @@ import '../models/word.dart';
 import '../services/storage_manager.dart';
 import '../services/tts_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:csv/csv.dart';
+import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:convert';
+import 'dart:io';
 
 class VocabularyScreen extends StatefulWidget {
   const VocabularyScreen({super.key});
@@ -127,7 +133,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         fillColor: Colors.grey.shade50,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
-        // onChange事件监听
+        // onChange事监听
       onChanged: _filterWords,
     );
   }
@@ -303,6 +309,41 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             icon: const Icon(Icons.logout),
             onPressed: _logout,
             tooltip: '登出',
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.file_upload),
+            onSelected: (value) {
+              switch (value) {
+                case 'text':
+                  _showTextImportDialog();
+                  break;
+                case 'file':
+                  _importFromFile();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'text',
+                child: Row(
+                  children: [
+                    Icon(Icons.paste),
+                    SizedBox(width: 8),
+                    Text('文本导入'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'file',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload),
+                    SizedBox(width: 8),
+                    Text('文件导入'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -623,5 +664,143 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         );
       },
     );
+  }
+
+  void _showTextImportDialog() {
+    final textController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('文本导入'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              '请粘贴CSV格式的文本：\n'
+              '日语,假名,含义,分类\n'
+              '食べる,たべる,吃,动词\n'
+              '水,みず,水,名词',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: textController,
+              maxLines: 8,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: '在此粘贴内容...',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _importFromText(textController.text);
+            },
+            child: const Text('导入'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importFromFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv', 'txt'],
+        withData: true,
+      );
+
+      if (result != null) {
+        final fileBytes = result.files.first.bytes;
+        if (fileBytes == null) {
+          throw Exception('无法读取文件');
+        }
+
+        final csvString = utf8.decode(fileBytes);
+        _importFromText(csvString);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('文件导入失败: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importFromText(String text) async {
+    try {
+      if (text.isEmpty) {
+        throw Exception('内容不能为空');
+      }
+
+      // 显示加载指示器
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // 解析CSV
+      List<List<dynamic>> rows = const CsvToListConverter().convert(text);
+      print('解析后的行: $rows');
+      
+      List<Word> words = [];
+      for (var i = 1; i < rows.length; i++) {
+        var row = rows[i];
+        if (row.length >= 3) {
+          var word = Word(
+            id: const Uuid().v4(),
+            japanese: row[0].toString().trim(),
+            pronunciation: row[1].toString().trim(),
+            meaning: row[2].toString().trim(),
+            category: row.length > 3 ? row[3].toString().trim() : null,
+          );
+          print('创建的单词: ${word.japanese} - ${word.pronunciation} - ${word.meaning}');
+          words.add(word);
+        }
+      }
+
+      if (words.isEmpty) {
+        throw Exception('没有有效的数据');
+      }
+
+      // 保存到本地
+      final box = await Hive.openBox<Word>('words');
+      await box.addAll(words);
+      
+      // 同步到云端
+      await _storageManager.uploadImportedWords(words);
+      
+      // 重新加载单词列表
+      await _loadWords();
+      
+      // 关闭加载指示器
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('成功导入 ${words.length} 个单词')),
+        );
+      }
+    } catch (e) {
+      print('导入错误: $e');
+      // 关闭加载指示器
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导入失败: $e')),
+        );
+      }
+    }
   }
 } 

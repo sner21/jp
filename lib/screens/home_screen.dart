@@ -5,6 +5,8 @@ import '../widgets/login_dialog.dart';
 import '../services/storage_manager.dart';
 import '../services/tts_service.dart';
 import 'word_list_screen.dart';
+import 'package:flutter/foundation.dart';  // 添加这行
+import 'dart:developer' as developer;      // 添加这行
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -177,6 +179,8 @@ class _HomeScreenState extends State<HomeScreen> {
       
       if (result == true && context.mounted) {
         try {
+          debugPrint('登录成功，准备同步');
+          
           // 显示加载指示器
           showDialog(
             context: context,
@@ -187,18 +191,23 @@ class _HomeScreenState extends State<HomeScreen> {
           );
 
           try {
+            debugPrint('开始调用 syncToCloud');
             await _storageManager.syncToCloud();
+            debugPrint('syncToCloud 调用完成');
+            
             // 关闭加载指示器
             if (context.mounted) {
               Navigator.of(context).pop();
             }
           } catch (e) {
+            debugPrint('同步过程出错: $e');
+            
             // 关闭加载指示器
             if (context.mounted) {
               Navigator.of(context).pop();
             }
 
-            if (e.toString().contains('SYNC_CONFLICT') && context.mounted) {
+            if (e.toString().contains('云端已有数据') && context.mounted) {
               final syncChoice = await showDialog<String>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -222,41 +231,11 @@ class _HomeScreenState extends State<HomeScreen> {
               );
 
               if (syncChoice == 'local') {
-                // 显示加载指示器
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-                await _storageManager.syncToCloud();
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
+                await _storageManager.syncToCloud(forceLocal: true);
               } else if (syncChoice == 'cloud') {
-                // 显示加载指示器
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
                 await _storageManager.syncToLocal();
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
               }
               // 如果选择 'cancel'，什么都不做
-            } else {
-              // 处理其他错误
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('同步失败，请稍后重试')),
-                );
-              }
-              rethrow;
             }
           }
 
@@ -266,9 +245,10 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
         } catch (e) {
+          debugPrint('整体操作失败: $e');
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('操作失败，请稍后重试')),
+              SnackBar(content: Text('操作失败: $e')),
             );
           }
         }
