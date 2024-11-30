@@ -4,6 +4,7 @@ import 'vocabulary_screen.dart';
 import '../widgets/login_dialog.dart';
 import '../services/storage_manager.dart';
 import '../services/tts_service.dart';
+import 'word_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -106,6 +107,17 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => const VocabularyScreen(),
+              ),
+            ),
+          ),
+          _buildFeatureCard(
+            context,
+            '单词列表',
+            Icons.list,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WordListScreen(),
               ),
             ),
           ),
