@@ -150,7 +150,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               alignedDropdown: true,
               child: DropdownButton<String>(
                 value: _selectedCategory,
-                hint: const Text('选择分类'),
+                hint: const Text('选择分类 '),
                 isExpanded: true,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 items: categories.map((category) {

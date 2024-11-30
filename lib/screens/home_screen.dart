@@ -3,9 +3,35 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'vocabulary_screen.dart';
 import '../widgets/login_dialog.dart';
 import '../services/storage_manager.dart';
+import '../services/tts_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final StorageManager _storageManager = StorageManager(Supabase.instance.client);
+  final TTSService _ttsService = TTSService();
+
+  Future<void> _clearTTSCache() async {
+    try {
+      await _ttsService.clearCache();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('语音缓存已清理')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('清理缓存失败')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,30 +39,100 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('日语学习助手'),
         actions: [
-          _buildAuthButton(context),
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              switch (value) {
+                case 'clear_cache':
+                  await _clearTTSCache();
+                  break;
+                case 'login':
+                  _handleAuthAction(context, false);
+                  break;
+                case 'logout':
+                  _handleAuthAction(context, true);
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              // 添加清理缓存选项
+              const PopupMenuItem(
+                value: 'clear_cache',
+                child: Row(
+                  children: [
+                    Icon(Icons.cleaning_services),
+                    SizedBox(width: 8),
+                    Text('清理语音缓存'),
+                  ],
+                ),
+              ),
+              // 登录/登出选项
+              if (_storageManager.isLoggedIn)
+                const PopupMenuItem(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout),
+                      SizedBox(width: 8),
+                      Text('退出登录'),
+                    ],
+                  ),
+                )
+              else
+                const PopupMenuItem(
+                  value: 'login',
+                  child: Row(
+                    children: [
+                      Icon(Icons.login),
+                      SizedBox(width: 8),
+                      Text('登录'),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
-      body: Center(
+      body: GridView.count(
+        crossAxisCount: 2,
+        padding: const EdgeInsets.all(16),
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        children: [
+          _buildFeatureCard(
+            context,
+            '生词本',
+            Icons.book,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const VocabularyScreen(),
+              ),
+            ),
+          ),
+          // ... 其他功能卡片
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return Card(
+      elevation: 4,
+      child: InkWell(
+        onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.book),
-              label: const Text('生词本'),
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const VocabularyScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-              ),
+            Icon(icon, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
           ],
         ),
@@ -44,28 +140,10 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAuthButton(BuildContext context) {
-    final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
-    
-    return TextButton.icon(
-      icon: Icon(
-        isLoggedIn ? Icons.logout : Icons.login,
-        color: Colors.white,
-      ),
-      label: Text(
-        isLoggedIn ? '登出123' : '登录',
-        style: const TextStyle(color: Colors.white),
-      ),
-      onPressed: () => _handleAuthAction(context, isLoggedIn),
-    );
-  }
-
   void _handleAuthAction(BuildContext context, bool isLoggedIn) async {
-    final storageManager = StorageManager(Supabase.instance.client);
-    
     if (isLoggedIn) {
       try {
-        await storageManager.syncToLocal();
+        await _storageManager.syncToLocal();
         await Supabase.instance.client.auth.signOut();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -97,7 +175,7 @@ class HomeScreen extends StatelessWidget {
           );
 
           try {
-            await storageManager.syncToCloud();
+            await _storageManager.syncToCloud();
             // 关闭加载指示器
             if (context.mounted) {
               Navigator.of(context).pop();
@@ -140,7 +218,7 @@ class HomeScreen extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   ),
                 );
-                await storageManager.syncToCloud();
+                await _storageManager.syncToCloud();
                 if (context.mounted) {
                   Navigator.of(context).pop();
                 }
@@ -153,7 +231,7 @@ class HomeScreen extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   ),
                 );
-                await storageManager.syncToLocal();
+                await _storageManager.syncToLocal();
                 if (context.mounted) {
                   Navigator.of(context).pop();
                 }
