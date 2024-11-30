@@ -26,6 +26,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   bool _showMeaning = true;
   bool _showJapanese = true;
   bool _showPronunciation = true;
+  bool _isListView = false;  // 添加视图模式标记
 
   @override
     // 类似于React的componentDidMount
@@ -290,6 +291,15 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         title: const Text('生词本'),
         actions: [
           IconButton(
+            icon: Icon(_isListView ? Icons.view_carousel : Icons.list),
+            tooltip: _isListView ? '卡片视图' : '列表视图',
+            onPressed: () {
+              setState(() {
+                _isListView = !_isListView;
+              });
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _logout,
             tooltip: '登出',
@@ -302,7 +312,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           Expanded(
             child: _filteredWords.isEmpty
                 ? _buildEmptyState()
-                : _buildWordsList(),
+                : _isListView 
+                    ? _buildListView()  // 新增列表视图
+                    : _buildWordsList(),  // 原有的卡片视图
           ),
         ],
       ),
@@ -566,5 +578,50 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         const SnackBar(content: Text('语音缓存已清理')),
       );
     }
+  }
+
+  // 添加列表视图
+  Widget _buildListView() {
+    return ListView.builder(
+      itemCount: _filteredWords.length,
+      itemBuilder: (context, index) {
+        final word = _filteredWords[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: ListTile(
+            title: Text(word.japanese),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_showPronunciation)
+                  Text(word.pronunciation),
+                Text(word.meaning),
+                if (word.category != null)
+                  Text('分类: ${word.category}'),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.volume_up),
+                  onPressed: () => _ttsService.speak(word.japanese),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () => _showWordOptions(word),
+                ),
+              ],
+            ),
+            onTap: () {
+              setState(() {
+                _currentWordIndex = index;  // 设置当前单词索引
+                _isListView = false;  // 切换到卡片视图
+              });
+            },
+          ),
+        );
+      },
+    );
   }
 } 
