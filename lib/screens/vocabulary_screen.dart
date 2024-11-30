@@ -192,7 +192,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
   // 弹窗组件，类似于React的Modal组件
-  void _showAddWordDialog([Word? wordToEdit]) {
+  void _showAddWordDialog([Word? wordToEdit]) {  
     final TextEditingController japaneseController = TextEditingController(text: wordToEdit?.japanese);
     final TextEditingController pronunciationController = TextEditingController(text: wordToEdit?.pronunciation);
     final TextEditingController meaningController = TextEditingController(text: wordToEdit?.meaning);
