@@ -149,7 +149,13 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       ),
       body: Column(
         children: [
-          _buildHeader(),
+          Visibility(
+            visible: _controller.isListView,
+            maintainState: true,  // 保持状态，避免重建
+            maintainAnimation: true,  // 保持动画状态
+            maintainSize: false,  // 不保持大小，这样不会占用空间
+            child: _buildHeader(),
+          ),
           Expanded(
             child: _controller.filteredWords.isEmpty
                 ? const Center(child: Text('没有单词'))
@@ -243,38 +249,38 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
-  Widget _buildCategoryDropdown() {
-    return FutureBuilder<List<String>>(
-      future: _controller.storageManager.getAllCategories(),
-      builder: (context, snapshot) {
-        final List<String> categories = ['全部', ...(snapshot.data ?? [])];
-        return Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(10),
-            color: Colors.grey.shade50,
-          ),
-          child: DropdownButtonHideUnderline(
-            child: ButtonTheme(
-              alignedDropdown: true,
-              child: DropdownButton<String>(
-                value: _controller.selectedCategory,
-                hint: const Text('选择分类'),
-                isExpanded: true,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                items: categories.map((category) => DropdownMenuItem<String>(
-                  value: category == '全部' ? null : category,
-                  child: Text(category),
-                )).toList(),
-                onChanged: _controller.filterByCategory,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  // Widget _buildCategoryDropdown() {
+  //   return FutureBuilder<List<String>>(
+  //     future: _controller.storageManager.getAllCategories(),
+  //     builder: (context, snapshot) {
+  //       final List<String> categories = ['全部', ...(snapshot.data ?? [])];
+  //       return Container(
+  //         width: double.infinity,
+  //         decoration: BoxDecoration(
+  //           border: Border.all(color: Colors.grey.shade300),
+  //           borderRadius: BorderRadius.circular(10),
+  //           color: Colors.grey.shade50,
+  //         ),
+  //         child: DropdownButtonHideUnderline(
+  //           child: ButtonTheme(
+  //             alignedDropdown: true,
+  //             child: DropdownButton<String>(
+  //               value: _controller.selectedCategory,
+  //               hint: const Text('选择分类'),
+  //               isExpanded: true,
+  //               padding: const EdgeInsets.symmetric(horizontal: 12),
+  //               items: categories.map((category) => DropdownMenuItem<String>(
+  //                 value: category == '全部' ? null : category,
+  //                 child: Text(category),
+  //               )).toList(),
+  //               onChanged: _controller.filterByCategory,
+  //             ),
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   void _showWordOptions(Word word) {
     showModalBottomSheet(

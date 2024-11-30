@@ -34,11 +34,43 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
      // 返回MaterialApp，类似于React Router的配置
     return MaterialApp(
-      title: '日语学习助手',
+      title: '生词本',
        // theme类似于前端的全局CSS或主题配置
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
+        // 使用橙色作为主色调
+        primarySwatch: Colors.orange,
+        
+        // Material 3 的配色方案
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.orange,
+          // 可以调整亮度
+          brightness: Brightness.light,
+        ),
+
+        // AppBar 主题
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,  // 文字和图标用白色
+        ),
+
+        // 浮动按钮主题
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+        ),
+
+        // 按钮主题
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange,
+            foregroundColor: Colors.white,
+          ),
+        ),
+
+        // 图标主题
+        iconTheme: const IconThemeData(
+          color: Colors.orange,
+        ),
       ),
           // home相当于路由的根路径'/'
       home: const HomeScreen(),
