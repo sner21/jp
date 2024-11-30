@@ -5,8 +5,10 @@ import '../widgets/login_dialog.dart';
 import '../services/storage_manager.dart';
 import '../services/tts_service.dart';
 import 'word_list_screen.dart';
-import 'package:flutter/foundation.dart';  // 添加这行
-import 'dart:developer' as developer;      // 添加这行
+import 'package:flutter/foundation.dart'; // 添加这行
+import 'dart:developer' as developer; // 添加这行
+import '../widgets/import_dialogs.dart';
+import '../controllers/vocabulary_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +18,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final StorageManager _storageManager = StorageManager(Supabase.instance.client);
+  final StorageManager _storageManager =
+      StorageManager(Supabase.instance.client);
   final TTSService _ttsService = TTSService();
 
   Future<void> _clearTTSCache() async {
@@ -38,6 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = VocabularyController.getInstance(
+      storageManager: StorageManager(Supabase.instance.client),
+      ttsService: TTSService(),
+      setState: setState,
+      context: context,
+    );
     return Scaffold(
       appBar: AppBar(
         title: const Text('日语学习助手'),
@@ -101,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
         children: [
+          // 首页卡片
           _buildFeatureCard(
             context,
             '生词本',
@@ -108,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
             () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const VocabularyScreen(),
+                builder: (context) => VocabularyScreen(controller: controller),
               ),
             ),
           ),
@@ -122,6 +132,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context) => const WordListScreen(),
               ),
             ),
+          ),
+          _buildFeatureCard(
+            context,
+            '设置',
+            Icons.list,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WordListScreen(),
+              ),
+            ),
+          ),
+          _buildFeatureCard(
+            context,
+            '导入',
+            Icons.list,
+            () => ImportDialogs.showTextImportDialog(
+                context, controller.importFromText),
           ),
           // ... 其他功能卡片
         ],
@@ -176,11 +204,11 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         builder: (context) => const LoginDialog(),
       );
-      
+
       if (result == true && context.mounted) {
         try {
           debugPrint('登录成功，准备同步');
-          
+
           // 显示加载指示器
           showDialog(
             context: context,
@@ -194,14 +222,14 @@ class _HomeScreenState extends State<HomeScreen> {
             debugPrint('开始调用 syncToCloud');
             await _storageManager.syncToCloud();
             debugPrint('syncToCloud 调用完成');
-            
+
             // 关闭加载指示器
             if (context.mounted) {
               Navigator.of(context).pop();
             }
           } catch (e) {
             debugPrint('同步过程出错: $e');
-            
+
             // 关闭加载指示器
             if (context.mounted) {
               Navigator.of(context).pop();
@@ -255,4 +283,4 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
   }
-} 
+}
