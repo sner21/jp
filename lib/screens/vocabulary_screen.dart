@@ -8,6 +8,9 @@ import '../widgets/word_list_view.dart';
 import '../widgets/word_card_view.dart';
 import '../widgets/import_dialogs.dart';
 import '../controllers/vocabulary_controller.dart';
+import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
+import '../widgets/word_form.dart';
 
 class VocabularyScreen extends StatefulWidget {
   final VocabularyController controller;
@@ -45,6 +48,52 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       appBar: AppBar(
         title: const Text('生词本'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _showWordDialog(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () async {
+              final categories = await _controller.storageManager.getAllCategories();
+              if (!mounted) return;
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('选择分类'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: const Text('全部'),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            final allWords = await _controller.storageManager.getAllWords();
+                            setState(() {
+                              _controller.filteredWords = allWords;
+                              _controller.currentWordIndex = 0;
+                            });
+                          },
+                        ),
+                        ...categories.map((category) => ListTile(
+                          title: Text(category),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            final categoryWords = await _controller.storageManager.getWordsByCategory(category);
+                            setState(() {
+                              _controller.filteredWords = categoryWords;
+                              _controller.currentWordIndex = 0;
+                            });
+                          },
+                        )),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(_controller.isSelectMode ? Icons.close : Icons.select_all),
             tooltip: _controller.isSelectMode ? '退出选择' : '批量选择',
@@ -91,11 +140,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: '退出登录',
-            onPressed: _controller.logout,
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.logout),
+          //   tooltip: '退出登录',
+          //   onPressed: _controller.logout,
+          // ),
         ],
       ),
       body: Column(
@@ -158,8 +207,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       child: Column(
         children: [
           _buildSearchBar(),
-          const SizedBox(height: 12),
-          _buildCategoryDropdown(),
+          // const SizedBox(height: 12),
+          // _buildCategoryDropdown(),
         ],
       ),
     );
@@ -238,7 +287,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             title: const Text('编辑'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: 实现编辑功能
+              _showWordDialog(word: word);
             },
           ),
           ListTile(
@@ -246,8 +295,110 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             title: const Text('删除'),
             onTap: () async {
               Navigator.pop(context);
-              // TODO: 实现删除功能
+              try {
+                final box = await Hive.openBox<Word>('words');
+                await box.delete(word.id);
+                
+                if (_controller.storageManager.isLoggedIn) {
+                  await _controller.storageManager.deleteWord(word.id);
+                }
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('删除成功')),
+                  );
+                }
+                
+                setState(() {
+                  _controller.filteredWords.remove(word);
+                  if (_controller.currentWordIndex >= _controller.filteredWords.length) {
+                    _controller.currentWordIndex = _controller.filteredWords.isEmpty ? 0 : _controller.filteredWords.length - 1;
+                  }
+                });
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('删除失败: $e')),
+                  );
+                }
+              }
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showWordDialog({Word? word}) {
+    final form = word != null ? WordForm.fromWord(word) : WordForm.forNewWord();
+    final isEditing = word != null;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isEditing ? '编辑单词' : '添加单词'),
+        content: SingleChildScrollView(
+          child: form,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                if (form.japaneseController.text.isEmpty ||
+                    form.pronunciationController.text.isEmpty ||
+                    form.meaningController.text.isEmpty) {
+                  throw Exception('请填写必要信息');
+                }
+
+                final newWord = Word(
+                  id: isEditing ? word!.id : const Uuid().v4(),
+                  japanese: form.japaneseController.text,
+                  pronunciation: form.pronunciationController.text,
+                  meaning: form.meaningController.text,
+                  category: form.categoryController.text.isEmpty ? null : form.categoryController.text,
+                );
+
+                final box = await Hive.openBox<Word>('words');
+                await box.put(newWord.id, newWord);
+                
+                if (_controller.storageManager.isLoggedIn) {
+                  if (isEditing) {
+                    await _controller.storageManager.updateWord(newWord);
+                  } else {
+                    await _controller.storageManager.addWord(newWord);
+                  }
+                }
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${isEditing ? '更新' : '添加'}成功')),
+                  );
+                }
+                
+                setState(() {
+                  if (isEditing) {
+                    final index = _controller.filteredWords.indexWhere((w) => w.id == word.id);
+                    if (index != -1) {
+                      _controller.filteredWords[index] = newWord;
+                    }
+                  } else {
+                    _controller.filteredWords.add(newWord);
+                  }
+                });
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${isEditing ? '更新' : '添加'}失败: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('保存'),
           ),
         ],
       ),

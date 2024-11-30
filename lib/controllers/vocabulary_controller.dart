@@ -77,13 +77,15 @@ class VocabularyController {
     setState(() {
       selectedCategory = category;
     });
+    
     if (category == null) {
+      // 如果选择"全部"，加载所有单词
       await loadWords();
     } else {
-      final categoryWords = await storageManager.getWordsByCategory(category);
+      // 如果选择具体分类，筛选该分类的单词
       setState(() {
-        filteredWords = categoryWords;
-        currentWordIndex = 0;
+        filteredWords = words.where((word) => word.category == category).toList();
+        currentWordIndex = 0;  // 重置当前单词索引
       });
     }
   }
