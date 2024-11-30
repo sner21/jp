@@ -34,6 +34,10 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   bool _showPronunciation = true;
   bool _isListView = false;  // 添加视图模式标记
 
+  // 添加选择模式和选中项的状态
+  bool _isSelectMode = false;
+  final Set<String> _selectedWords = {};
+
   @override
     // 类似于React的componentDidMount
   void initState() {
@@ -345,6 +349,24 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               ),
             ],
           ),
+          // 添加选择模式切换按钮
+          IconButton(
+            icon: Icon(_isSelectMode ? Icons.close : Icons.select_all),
+            tooltip: _isSelectMode ? '退出选择' : '批量选择',
+            onPressed: () {
+              setState(() {
+                _isSelectMode = !_isSelectMode;
+                _selectedWords.clear();
+              });
+            },
+          ),
+          // 添加删除按钮
+          if (_isSelectMode && _selectedWords.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: '删除选中项',
+              onPressed: _deleteSelected,
+            ),
         ],
       ),
       body: Column(
@@ -630,6 +652,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: ListTile(
+            leading: _isSelectMode ? Checkbox(
+              value: _selectedWords.contains(word.id),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value == true) {
+                    _selectedWords.add(word.id);
+                  } else {
+                    _selectedWords.remove(word.id);
+                  }
+                });
+              },
+            ) : null,
             title: Text(word.japanese),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,18 +682,29 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   icon: const Icon(Icons.volume_up),
                   onPressed: () => _ttsService.speak(word.japanese),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: () => _showWordOptions(word),
-                ),
+                if (!_isSelectMode)  // 在非选择模式下显示更多选项按钮
+                  IconButton(
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: () => _showWordOptions(word),
+                  ),
               ],
             ),
-            onTap: () {
-              setState(() {
-                _currentWordIndex = index;  // 设置当前单词索引
-                _isListView = false;  // 切换到卡片视图
-              });
-            },
+            onTap: _isSelectMode 
+              ? () {
+                  setState(() {
+                    if (_selectedWords.contains(word.id)) {
+                      _selectedWords.remove(word.id);
+                    } else {
+                      _selectedWords.add(word.id);
+                    }
+                  });
+                }
+              : () {
+                  setState(() {
+                    _currentWordIndex = index;
+                    _isListView = false;
+                  });
+                },
           ),
         );
       },
@@ -802,6 +847,56 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('导入失败: $e')),
         );
+      }
+    }
+  }
+
+  // 添加批量删除方法
+  Future<void> _deleteSelected() async {
+    // 显示确认对话框
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除选中的 ${_selectedWords.length} 个单词吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final box = await Hive.openBox<Word>('words');
+        // 删除选中的单词
+        for (final wordId in _selectedWords) {
+          await box.delete(wordId);
+        }
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('删除成功')),
+          );
+        }
+        
+        // 退出选择模式
+        setState(() {
+          _isSelectMode = false;
+          _selectedWords.clear();
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('删除失败: $e')),
+          );
+        }
       }
     }
   }
