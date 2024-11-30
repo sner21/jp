@@ -742,36 +742,38 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         throw Exception('内容不能为空');
       }
 
-      // 显示加载指示器
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      // 解析CSV
-      List<List<dynamic>> rows = const CsvToListConverter().convert(text);
-      print('解析后的行: $rows');
+      debugPrint('开始解析CSV文本: $text');
       
+      // 分割文本为行
+      List<String> lines = text.split('\n');
+      debugPrint('分割后的行: $lines');
+      
+      // 手动解析CSV
+      List<List<String>> rows = lines.map((line) => 
+        line.split(',').map((cell) => cell.trim()).toList()
+      ).toList();
+      
+      debugPrint('解析后的行: $rows');
+      
+      // 转换为Word对象
       List<Word> words = [];
+      // 跳过标题行
       for (var i = 1; i < rows.length; i++) {
         var row = rows[i];
+        debugPrint('处理行: $row');
         if (row.length >= 3) {
-          var word = Word(
+          words.add(Word(
             id: const Uuid().v4(),
-            japanese: row[0].toString().trim(),
-            pronunciation: row[1].toString().trim(),
-            meaning: row[2].toString().trim(),
-            category: row.length > 3 ? row[3].toString().trim() : null,
-          );
-          print('创建的单词: ${word.japanese} - ${word.pronunciation} - ${word.meaning}');
-          words.add(word);
+            japanese: row[0],
+            pronunciation: row[1],
+            meaning: row[2],
+            category: row.length > 3 ? row[3] : null,
+          ));
         }
       }
 
       if (words.isEmpty) {
+        debugPrint('没有解析出有效数据');
         throw Exception('没有有效的数据');
       }
 
@@ -779,8 +781,10 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       final box = await Hive.openBox<Word>('words');
       await box.addAll(words);
       
-      // 同步到云端
-      await _storageManager.uploadImportedWords(words);
+      // 使用专门的导入方法上传到云端
+      if (_storageManager.isLoggedIn) {
+        await _storageManager.uploadImportedWords(words);
+      }
       
       // 重新加载单词列表
       await _loadWords();
@@ -793,10 +797,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         );
       }
     } catch (e) {
-      print('导入错误: $e');
-      // 关闭加载指示器
+      debugPrint('导入错误: $e');
       if (mounted) {
-        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('导入失败: $e')),
         );
