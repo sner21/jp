@@ -158,28 +158,31 @@ class VocabularyController {
   Future<void> deleteSelected() async {
     try {
       final box = await Hive.openBox<Word>('words');
-      for (final wordId in selectedWords) {
+      
+      // 创建所有删除操作的Future列表
+      final List<Future<void>> deleteFutures = selectedWords.map((wordId) async {
+        // 本地删除
         await box.delete(wordId);
-      }
+        
+        // 如果已登录，同时删除云端数据
+        if (storageManager.isLoggedIn) {
+          await storageManager.deleteWord(wordId);
+        }
+      }).toList();
       
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('删除成功')),
-        );
-      }
+      // 并行执行所有删除操作
+      await Future.wait(deleteFutures);
       
-      setState(() {
-        isSelectMode = false;
-        selectedWords.clear();
-      });
+      // 清空选中列表并退出选择模式
+      selectedWords.clear();
+      isSelectMode = false;
       
+      // 重新加载单词列表
       await loadWords();
+      
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('删除失败: $e')),
-        );
-      }
+      print('批量删除失败: $e');
+      rethrow;
     }
   }
 

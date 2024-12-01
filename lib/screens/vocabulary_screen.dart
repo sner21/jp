@@ -110,7 +110,24 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             IconButton(
               icon: const Icon(Icons.delete),
               tooltip: '删除选中项',
-              onPressed: _controller.deleteSelected,
+              onPressed: () async {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                try {
+                  await _controller.deleteSelected();
+                  
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('批量删除成功')),
+                  );
+                  
+                  setState(() {
+                    _controller.isSelectMode = false;
+                  });
+                } catch (e) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('批量删除失败: $e')),
+                  );
+                }
+              },
             ),
           IconButton(
             icon: Icon(_controller.isListView ? Icons.view_agenda : Icons.view_list),
@@ -391,9 +408,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   // }
 
   void _showWordOptions(Word word) {
+    // 保存 BuildContext 的引用
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     showModalBottomSheet(
       context: context,
-      builder: (context) => Column(
+      builder: (BuildContext context) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
@@ -409,32 +429,35 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             title: const Text('删除'),
             onTap: () async {
               Navigator.pop(context);
+              
               try {
+                // 更新本地存储
                 final box = await Hive.openBox<Word>('words');
                 await box.delete(word.id);
                 
+                // 如果已登录，同步到云端
                 if (_controller.storageManager.isLoggedIn) {
                   await _controller.storageManager.deleteWord(word.id);
                 }
-
+                
+                // 重新加载单词列表
+                await _controller.loadWords();
+                
+                // 使用保存的 scaffoldMessenger 显示消息
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('删除成功')),
+                );
+                
+                // 更新状态
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('删除成功')),
-                  );
+                  setState(() {});
                 }
                 
-                setState(() {
-                  _controller.filteredWords.remove(word);
-                  if (_controller.currentWordIndex >= _controller.filteredWords.length) {
-                    _controller.currentWordIndex = _controller.filteredWords.isEmpty ? 0 : _controller.filteredWords.length - 1;
-                  }
-                });
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('删除失败: $e')),
-                  );
-                }
+                // 使用保存的 scaffoldMessenger 显示错误消息
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(content: Text('删除失败: $e')),
+                );
               }
             },
           ),
