@@ -4,6 +4,7 @@ import 'vocabulary_screen.dart';
 import '../widgets/login_dialog.dart';
 import '../services/storage_manager.dart';
 import '../services/tts_service.dart';
+import '../screens/settings_screen.dart';
 import 'word_list_screen.dart';
 import 'package:flutter/foundation.dart'; // 添加这行
 import 'dart:developer' as developer; // 添加这行
@@ -136,11 +137,11 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildFeatureCard(
             context,
             '设置',
-            Icons.list,
+            Icons.settings,
             () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const WordListScreen(),
+                builder: (context) => const SettingsScreen(),
               ),
             ),
           ),

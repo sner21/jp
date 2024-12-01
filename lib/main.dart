@@ -5,6 +5,8 @@ import 'screens/vocabulary_screen.dart';  // 添加这行导入语句
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/env_config.dart';
 import 'screens/home_screen.dart';
+import 'package:provider/provider.dart';
+import 'services/theme_service.dart';
 // 类似于React的入口文件index.js
 void main() async {
     // 确保Flutter初始化完成，类似于等待DOM加载完成
@@ -23,7 +25,12 @@ void main() async {
     anonKey: EnvConfig.supabaseAnonKey,
   );
     // 类似于React的ReactDOM.render()
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeService(),
+      child: const MyApp(),
+    ),
+  );
 }
 // 根组件，类似于React的App.js
 class MyApp extends StatelessWidget {
@@ -32,48 +39,73 @@ class MyApp extends StatelessWidget {
   @override
     // build方法类似于React组件的render()方法
   Widget build(BuildContext context) {
-     // 返回MaterialApp，类似于React Router的配置
-    return MaterialApp(
-      title: '生词本',
-       // theme类似于前端的全局CSS或主题配置
-      theme: ThemeData(
-        // 使用橙色作为主色调
-        primarySwatch: Colors.orange,
+    return Consumer<ThemeService>(
+      builder: (context, themeService, child) {
+        final pColor = _createMaterialColor(themeService.themeColor);
         
-        // Material 3 的配色方案
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.orange,
-          // 可以调整亮度
-          brightness: Brightness.light,
-        ),
+        return MaterialApp(
+          title: '生词本',
+           // theme类似于前端的全局CSS或主题配置
+          theme: ThemeData(
+            // 使用橙色作为主色调
+            primarySwatch: pColor,
+            
+            // Material 3 的配色方案
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: pColor,
+              // 可以调整亮度
+              brightness: Brightness.light,
+            ),
 
-        // AppBar 主题
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,  // 文字和图标用白色
-        ),
+            // AppBar 主题
+            appBarTheme: AppBarTheme(
+              backgroundColor: pColor,
+              foregroundColor: Colors.white,  // 文字和图标用白色
+            ),
 
-        // 浮动按钮主题
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-        ),
+            // 浮动按钮主题
+            floatingActionButtonTheme: FloatingActionButtonThemeData(
+              backgroundColor: pColor,
+              foregroundColor: Colors.white,
+            ),
 
-        // 按钮主题
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-            foregroundColor: Colors.white,
+            // 按钮主题
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: pColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+
+            // 图标主题
+            iconTheme: IconThemeData(
+              color: pColor,
+            ),
           ),
-        ),
-
-        // 图标主题
-        iconTheme: const IconThemeData(
-          color: Colors.orange,
-        ),
-      ),
-          // home相当于路由的根路径'/'
-      home: const HomeScreen(),
+              // home相当于路由的根路径'/'
+          home: const HomeScreen(),
+        );
+      },
     );
+  }
+
+  MaterialColor _createMaterialColor(Color color) {
+    List<double> strengths = <double>[.05];
+    Map<int, Color> swatch = {};
+    final int r = color.red, g = color.green, b = color.blue;
+
+    for (int i = 1; i < 10; i++) {
+      strengths.add(0.1 * i);
+    }
+    for (var strength in strengths) {
+      final double ds = 0.5 - strength;
+      swatch[(strength * 1000).round()] = Color.fromRGBO(
+        r + ((ds < 0 ? r : (255 - r)) * ds).round(),
+        g + ((ds < 0 ? g : (255 - g)) * ds).round(),
+        b + ((ds < 0 ? b : (255 - b)) * ds).round(),
+        1,
+      );
+    }
+    return MaterialColor(color.value, swatch);
   }
 }

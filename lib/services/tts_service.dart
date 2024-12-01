@@ -11,6 +11,7 @@ class TTSService {
   bool _isPlaying = false;
   final Map<String, String> _cache = {}; // 内存缓存
   static const int _maxCacheSize = 100; // 最大缓存数量
+  String _language = 'ja';  // 默认语言
 
   // 生成缓存key
   String _getCacheKey(String text, String languageCode) {
@@ -47,6 +48,10 @@ class TTSService {
   }
 
   String _detectLanguage(String text) {
+    if (_language != 'auto') {
+      return _language;
+    }
+    // 原有的语言检测逻辑
     final hiragana = RegExp(r'[\u3040-\u309F]');
     final katakana = RegExp(r'[\u30A0-\u30FF]');
     final kanji = RegExp(r'[\u4E00-\u9FAF]');
@@ -168,5 +173,18 @@ class TTSService {
       print('TTS availability check error: $e');
       return false;
     }
+  }
+    // 只添加这两个新方法
+  void setLanguage(String language) {
+    _language = language;
+  }
+
+  String getLanguage() {
+    return _language;
+  }
+
+  Future<List<String>> getVoices() async {
+    // 返回固定的语言选项
+    return ['ja', 'en'];
   }
 } 
