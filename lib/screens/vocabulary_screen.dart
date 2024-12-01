@@ -183,12 +183,100 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                           });
                         },
                       )
-                    : WordCardView(
-                        word: _controller.filteredWords[_controller.currentWordIndex],
-                        ttsService: _controller.ttsService,
-                        showJapanese: _controller.showJapanese,
-                        showPronunciation: _controller.showPronunciation,
-                        showMeaning: _controller.showMeaning,
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: WordCardView(
+                              word: _controller.filteredWords[_controller.currentWordIndex],
+                              ttsService: _controller.ttsService,
+                              showJapanese: _controller.showJapanese,
+                              showPronunciation: _controller.showPronunciation,
+                              showMeaning: _controller.showMeaning,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  spreadRadius: 1,
+                                  blurRadius: 2,
+                                  offset: const Offset(0, -1),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      FilterChip(
+                                        label: const Text('假名', style: TextStyle(fontSize: 16)),
+                                        selected: _controller.showJapanese,
+                                        onSelected: (value) => setState(() {
+                                          _controller.showJapanese = value;
+                                        }),
+                                        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      FilterChip(
+                                        label: const Text('读音', style: TextStyle(fontSize: 16)),
+                                        selected: _controller.showPronunciation,
+                                        onSelected: (value) => setState(() {
+                                          _controller.showPronunciation = value;
+                                        }),
+                                        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      FilterChip(
+                                        label: const Text('释义', style: TextStyle(fontSize: 16)),
+                                        selected: _controller.showMeaning,
+                                        onSelected: (value) => setState(() {
+                                          _controller.showMeaning = value;
+                                        }),
+                                        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.arrow_back_ios, size: 28),
+                                      onPressed: _controller.currentWordIndex > 0
+                                          ? () => setState(() {
+                                              _controller.currentWordIndex--;
+                                            })
+                                          : null,
+                                      padding: const EdgeInsets.all(12),
+                                    ),
+                                    Text(
+                                      '${_controller.currentWordIndex + 1}/${_controller.filteredWords.length}',
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.arrow_forward_ios, size: 28),
+                                      onPressed: _controller.currentWordIndex < _controller.filteredWords.length - 1
+                                          ? () => setState(() {
+                                              _controller.currentWordIndex++;
+                                            })
+                                          : null,
+                                      padding: const EdgeInsets.all(12),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
           ),
         ],
