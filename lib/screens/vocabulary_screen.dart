@@ -25,12 +25,14 @@ class VocabularyScreen extends StatefulWidget {
 }
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
+  late final PageController _pageController;
   late final _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller;
+    _pageController = PageController(initialPage: _controller.currentWordIndex);
     _controller.loadWords();
     
     // 监听登录状态变化
@@ -151,9 +153,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         children: [
           Visibility(
             visible: _controller.isListView,
-            maintainState: true,  // 保持状态，避免重建
-            maintainAnimation: true,  // 保持动画状态
-            maintainSize: false,  // 不保持大小，这样不会占用空间
+            maintainState: true,
+            maintainAnimation: true,
+            maintainSize: false,
             child: _buildHeader(),
           ),
           Expanded(
@@ -186,12 +188,23 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                     : Column(
                         children: [
                           Expanded(
-                            child: WordCardView(
-                              word: _controller.filteredWords[_controller.currentWordIndex],
-                              ttsService: _controller.ttsService,
-                              showJapanese: _controller.showJapanese,
-                              showPronunciation: _controller.showPronunciation,
-                              showMeaning: _controller.showMeaning,
+                            child: PageView.builder(
+                              controller: _pageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _controller.currentWordIndex = index;
+                                });
+                              },
+                              itemCount: _controller.filteredWords.length,
+                              itemBuilder: (context, index) {
+                                return WordCardView(
+                                  word: _controller.filteredWords[index],
+                                  ttsService: _controller.ttsService,
+                                  showJapanese: _controller.showJapanese,
+                                  showPronunciation: _controller.showPronunciation,
+                                  showMeaning: _controller.showMeaning,
+                                );
+                              },
                             ),
                           ),
                           Container(
@@ -217,6 +230,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                       FilterChip(
                                         label: const Text('假名', style: TextStyle(fontSize: 16)),
                                         selected: _controller.showJapanese,
+                                        showCheckmark: false, 
                                         onSelected: (value) => setState(() {
                                           _controller.showJapanese = value;
                                         }),
@@ -252,9 +266,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                     IconButton(
                                       icon: const Icon(Icons.arrow_back_ios, size: 28),
                                       onPressed: _controller.currentWordIndex > 0
-                                          ? () => setState(() {
-                                              _controller.currentWordIndex--;
-                                            })
+                                          ? () {
+                                              _pageController.previousPage(
+                                                duration: const Duration(milliseconds: 300),
+                                                curve: Curves.easeInOut,
+                                              );
+                                            }
                                           : null,
                                       padding: const EdgeInsets.all(12),
                                     ),
@@ -265,9 +282,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                     IconButton(
                                       icon: const Icon(Icons.arrow_forward_ios, size: 28),
                                       onPressed: _controller.currentWordIndex < _controller.filteredWords.length - 1
-                                          ? () => setState(() {
-                                              _controller.currentWordIndex++;
-                                            })
+                                          ? () {
+                                              _pageController.nextPage(
+                                                duration: const Duration(milliseconds: 300),
+                                                curve: Curves.easeInOut,
+                                              );
+                                            }
                                           : null,
                                       padding: const EdgeInsets.all(12),
                                     ),
@@ -501,6 +521,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
   @override
   void dispose() {
+    _pageController.dispose();
     _controller.ttsService.stop();
     super.dispose();
   }
