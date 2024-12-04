@@ -70,7 +70,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Colors.red,
                         Colors.green,
                         Colors.purple,
+                        Colors.amber,
                         Colors.orange,
+                        Colors.orange.shade700,
                         Colors.teal,
                       ].map((selectedColor) => InkWell(
                         onTap: () {
