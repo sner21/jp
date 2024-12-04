@@ -42,7 +42,7 @@ class WordForm extends StatelessWidget {
       children: [
         TextField(
           controller: japaneseController,
-          decoration: const InputDecoration(labelText: '单词'),
+          decoration: const InputDecoration(labelText: '单词*'),
         ),
         TextField(
           controller: pronunciationController,
@@ -50,7 +50,7 @@ class WordForm extends StatelessWidget {
         ),
         TextField(
           controller: meaningController,
-          decoration: const InputDecoration(labelText: '释义'),
+          decoration: const InputDecoration(labelText: '释义*'),
         ),
         TextField(
           controller: categoryController,

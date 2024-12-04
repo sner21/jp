@@ -28,6 +28,7 @@ class WordCardView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (showJapanese) ...[
+               const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -35,21 +36,21 @@ class WordCardView extends StatelessWidget {
                     word.japanese,
                     style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.volume_up),
-                    onPressed: () async {
-                      try {
-                        await ttsService.speak(word.japanese);
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('发音播放失败，请检查网络连接')),
-                          );
-                        }
-                      }
-                    },
-                    tooltip: '播放发音',
-                  ),
+                  // IconButton(
+                  //   icon: const Icon(Icons.volume_up),
+                  //   onPressed: () async {
+                  //     try {
+                  //       await ttsService.speak(word.japanese);
+                  //     } catch (e) {
+                  //       if (context.mounted) {
+                  //         ScaffoldMessenger.of(context).showSnackBar(
+                  //           const SnackBar(content: Text('发音播放失败，请检查网络连接')),
+                  //         );
+                  //       }
+                  //     }
+                  //   },
+                  //   tooltip: '播放发音',
+                  // ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -62,21 +63,21 @@ class WordCardView extends StatelessWidget {
                     word.pronunciation,
                     style: const TextStyle(fontSize: 24, color: Colors.grey),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.volume_up),
-                    onPressed: () async {
-                      try {
-                        await ttsService.speak(word.pronunciation);
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('发音播放失败，请检查网络连接')),
-                          );
-                        }
-                      }
-                    },
-                    tooltip: '播放发音',
-                  ),
+                  // IconButton(
+                  //   icon: const Icon(Icons.volume_up),
+                  //   onPressed: () async {
+                  //     try {
+                  //       await ttsService.speak(word.pronunciation);
+                  //     } catch (e) {
+                  //       if (context.mounted) {
+                  //         ScaffoldMessenger.of(context).showSnackBar(
+                  //           const SnackBar(content: Text('发音播放失败，请检查网络连接')),
+                  //         );
+                  //       }
+                  //     }
+                  //   },
+                  //   tooltip: '播放发音',
+                  // ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -96,6 +97,24 @@ class WordCardView extends StatelessWidget {
                 ),
               ),
             ],
+            const Spacer(),
+            IconButton(
+              iconSize: 36,  // 设置图标大小
+              icon: const Icon(Icons.volume_up),
+              onPressed: () async {
+                try {
+                  await ttsService.speak(word.pronunciation ?? word.japanese);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('发音播放失败，请检查网络连接')),
+                    );
+                  }
+                }
+              },
+              tooltip: '播放发音',
+            ),
+            const SizedBox(height: 30),
           ],
         ),
       ),

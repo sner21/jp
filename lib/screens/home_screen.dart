@@ -50,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: const Text('外语生词册'),
+        title: const Text('Slin'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
