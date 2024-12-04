@@ -50,53 +50,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       appBar: AppBar(
         title: const Text('生词本'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showWordDialog(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () async {
-              final categories = await _controller.storageManager.getAllCategories();
-              if (!mounted) return;
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('选择分类'),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: const Text('全部'),
-                          onTap: () async {
-                            Navigator.pop(context);
-                            final allWords = await _controller.storageManager.getAllWords();
-                            setState(() {
-                              _controller.filteredWords = allWords;
-                              _controller.currentWordIndex = 0;
-                            });
-                          },
-                        ),
-                        ...categories.map((category) => ListTile(
-                          title: Text(category),
-                          onTap: () async {
-                            Navigator.pop(context);
-                            final categoryWords = await _controller.storageManager.getWordsByCategory(category);
-                            setState(() {
-                              _controller.filteredWords = categoryWords;
-                              _controller.currentWordIndex = 0;
-                            });
-                          },
-                        )),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          IconButton(
+          //TODO 添加单词
+          // IconButton(
+          //   icon: const Icon(Icons.add),
+          //   onPressed: () => _showWordDialog(),
+          // ),
+          if (_controller.isListView)IconButton(
             icon: Icon(_controller.isSelectMode ? Icons.close : Icons.select_all),
             tooltip: _controller.isSelectMode ? '退出选择' : '批量选择',
             onPressed: () {
@@ -138,27 +97,69 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               });
             },
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.file_upload),
-            onSelected: (value) {
-              if (value == 'text') {
-                ImportDialogs.showTextImportDialog(context, _controller.importFromText);
-              } else if (value == 'file') {
-                ImportDialogs.importFromFile(_controller.importFromText);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'text',
-                child: Text('文本导入'),
-              ),
-              if (!kIsWeb)
-                const PopupMenuItem(
-                  value: 'file',
-                  child: Text('文件导入'),
+                    IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () async {
+              final categories = await _controller.storageManager.getAllCategories();
+              if (!mounted) return;
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('选择分类'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: const Text('全部'),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            final allWords = await _controller.storageManager.getAllWords();
+                            setState(() {
+                              _controller.filteredWords = allWords;
+                              _controller.currentWordIndex = 0;
+                            });
+                          },
+                        ),
+                        ...categories.map((category) => ListTile(
+                          title: Text(category),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            final categoryWords = await _controller.storageManager.getWordsByCategory(category);
+                            setState(() {
+                              _controller.filteredWords = categoryWords;
+                              _controller.currentWordIndex = 0;
+                            });
+                          },
+                        )),
+                      ],
+                    ),
+                  ),
                 ),
-            ],
+              );
+            },
           ),
+          // PopupMenuButton<String>(
+          //   icon: const Icon(Icons.file_upload),
+          //   onSelected: (value) {
+          //     if (value == 'text') {
+          //       ImportDialogs.showTextImportDialog(context, _controller.importFromText);
+          //     } else if (value == 'file') {
+          //       ImportDialogs.importFromFile(_controller.importFromText);
+          //     }
+          //   },
+          //   itemBuilder: (context) => [
+          //     const PopupMenuItem(
+          //       value: 'text',
+          //       child: Text('文本导入'),
+          //     ),
+          //     if (!kIsWeb)
+          //       const PopupMenuItem(
+          //         value: 'file',
+          //         child: Text('文件导入'),
+          //       ),
+          //   ],
+          // ),
           // IconButton(
           //   icon: const Icon(Icons.logout),
           //   tooltip: '退出登录',
@@ -317,6 +318,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                       ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showWordDialog(),  // 调用添加单词的方法
+        child: const Icon(Icons.add),
+        tooltip: '添加单词',
       ),
     );
   }

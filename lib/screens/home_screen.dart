@@ -136,6 +136,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           _buildFeatureCard(
             context,
+            '导入',
+            Icons.list,
+            () => ImportDialogs.showTextImportDialog(
+                context, controller.importFromText),
+          ),
+                    _buildFeatureCard(
+            context,
             '设置',
             Icons.settings,
             () => Navigator.push(
@@ -144,13 +151,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context) => const SettingsScreen(),
               ),
             ),
-          ),
-          _buildFeatureCard(
-            context,
-            '导入',
-            Icons.list,
-            () => ImportDialogs.showTextImportDialog(
-                context, controller.importFromText),
           ),
           // ... 其他功能卡片
         ],
