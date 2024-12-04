@@ -246,7 +246,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       FilterChip(
-                                        label: const Text('假名', style: TextStyle(fontSize: 16)),
+                                        label: const Text('单词', style: TextStyle(fontSize: 16)),
                                         selected: _controller.showJapanese,
                                         showCheckmark: false, 
                                         onSelected: (value) => setState(() {

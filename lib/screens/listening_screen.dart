@@ -12,7 +12,7 @@ class ListeningScreen extends StatelessWidget {
           ),
           ListeningExerciseCard(
             title: '句子听力',
-            description: '听句子选择正确的含义',
+            description: '听句子选择正确的释义',
             onTap: () => Navigator.pushNamed(context, '/listening/sentences'),
           ),
         ],

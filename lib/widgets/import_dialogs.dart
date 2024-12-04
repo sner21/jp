@@ -16,7 +16,7 @@ class ImportDialogs {
           children: [
             const Text(
               '请粘贴CSV格式的文本：\n'
-              '日语,假名,含义,分类\n'
+              '单词,读音,释义,分类\n'
               '食べる,たべる,吃,动词\n'
               '水,みず,水,名词',
             ),

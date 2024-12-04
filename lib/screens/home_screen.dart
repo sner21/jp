@@ -50,13 +50,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: const Text('日语学习助手'),
+        title: const Text('外语生词册'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
               switch (value) {
                 case 'clear_cache':
                   await _clearTTSCache();
+                  break;
+                case 'register':
+                  _handleAuthAction(context, false, isRegister: true);
                   break;
                 case 'login':
                   _handleAuthAction(context, false);
@@ -79,18 +82,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               // 登录/登出选项
-              if (_storageManager.isLoggedIn)
+              if (!_storageManager.isLoggedIn) ...[
                 const PopupMenuItem(
-                  value: 'logout',
+                  value: 'register',
                   child: Row(
                     children: [
-                      Icon(Icons.logout),
+                      Icon(Icons.person_add),
                       SizedBox(width: 8),
-                      Text('退出登录'),
+                      Text('注册'),
                     ],
                   ),
-                )
-              else
+                ),
                 const PopupMenuItem(
                   value: 'login',
                   child: Row(
@@ -98,6 +100,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       Icon(Icons.login),
                       SizedBox(width: 8),
                       Text('登录'),
+                    ],
+                  ),
+                ),
+              ] else
+                const PopupMenuItem(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout),
+                      SizedBox(width: 8),
+                      Text('退出登录'),
                     ],
                   ),
                 ),
@@ -183,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _handleAuthAction(BuildContext context, bool isLoggedIn) async {
+  void _handleAuthAction(BuildContext context, bool isLoggedIn, {bool isRegister = false}) async {
     if (isLoggedIn) {
       try {
         await _storageManager.syncToLocal();
@@ -203,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       final result = await showDialog<bool>(
         context: context,
-        builder: (context) => const LoginDialog(),
+        builder: (context) => LoginDialog(isRegister: isRegister),
       );
 
       if (result == true && context.mounted) {

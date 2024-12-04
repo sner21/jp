@@ -225,4 +225,39 @@ class StorageManager implements StorageInterface {
       rethrow;
     }
   }
+
+  // 添加注册方法
+  Future<void> register(String email, String password) async {
+    try {
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+      
+      if (response.user == null) {
+        throw Exception('注册失败');
+      }
+
+      // 检查邮箱验证状态
+      if (response.user?.emailConfirmedAt == null) {
+        throw Exception('请查看邮箱并点击验证链接完成注册');
+      }
+
+      // 如果邮箱已验证，可以继续处理
+      debugPrint('注册成功，邮箱已验证');
+      
+    } catch (e) {
+      if (e.toString().contains('Email rate limit exceeded')) {
+        throw Exception('该邮箱注册过于频繁，请稍后再试');
+      } else if (e.toString().contains('Email already registered')) {
+        throw Exception('该邮箱已被注册');
+      } else if (e.toString().contains('Invalid email')) {
+        throw Exception('邮箱格式不正确');
+      } else if (e.toString().contains('Password should be at least 6 characters')) {
+        throw Exception('密码长度至少为6位');
+      }
+      debugPrint('注册失败: $e');
+      rethrow;
+    }
+  }
 } 

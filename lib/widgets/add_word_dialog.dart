@@ -72,11 +72,11 @@ class _AddWordDialogState extends State<AddWordDialog> {
               TextFormField(
                 controller: _meaningController,
                 decoration: const InputDecoration(
-                  labelText: '中文含义',
+                  labelText: '中文释义',
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return '请输入含义';
+                    return '请输入释义';
                   }
                   return null;
                 },

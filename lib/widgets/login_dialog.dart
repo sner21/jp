@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginDialog extends StatefulWidget {
-  const LoginDialog({super.key});
+  final bool isRegister;
+  const LoginDialog({super.key, this.isRegister = false});
 
   @override
   State<LoginDialog> createState() => _LoginDialogState();
@@ -29,28 +30,41 @@ class _LoginDialogState extends State<LoginDialog> {
     });
 
     try {
-      print('开始登录流程');
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      print('登录成功');
+      debugPrint('开始${widget.isRegister ? '注册' : '登录'}流程');
+      
+      if (widget.isRegister) {
+        final response = await Supabase.instance.client.auth.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+                debugPrint('注册响应: ${response.user}');  // 打印用户信息
+        debugPrint('会话信息: ${response.session}');  // 打印会话信息
+        debugPrint('完整响应: $response');  // 打印完整响应
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('注册成功，请查看邮箱完成验证')),
+          );
+        }
+      } else {
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      }
 
       if (mounted) {
         Navigator.of(context).pop(true);
       }
     } on AuthException catch (e) {
-      print('登录失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.message)),
         );
       }
     } catch (e) {
-      print('登录失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('登录失败，请稍后重试')),
+          SnackBar(content: Text('${widget.isRegister ? '注册' : '登录'}失败，请稍后重试')),
         );
       }
     } finally {
@@ -65,7 +79,7 @@ class _LoginDialogState extends State<LoginDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('登录'),
+      title: Text(widget.isRegister ? '注册' : '登录'),
       content: Form(
         key: _formKey,
         child: Column(
@@ -116,7 +130,7 @@ class _LoginDialogState extends State<LoginDialog> {
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('登录'),
+              : Text(widget.isRegister ? '注册' : '登录'),
         ),
       ],
     );

@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="生词本"
+        android:label="外语生词册"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
