@@ -46,7 +46,7 @@ class WordForm extends StatelessWidget {
         ),
         TextField(
           controller: pronunciationController,
-          decoration: const InputDecoration(labelText: '读音'),
+          decoration: const InputDecoration(labelText: '读音*'),
         ),
         TextField(
           controller: meaningController,

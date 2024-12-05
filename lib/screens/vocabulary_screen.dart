@@ -246,7 +246,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       FilterChip(
-                                        label: const Text('单词', style: TextStyle(fontSize: 16)),
+                                        label: const Text('单词', style: TextStyle(fontSize: 20)),
                                         selected: _controller.showJapanese,
                                         showCheckmark: false, 
                                         onSelected: (value) => setState(() {
@@ -257,8 +257,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                       ),
                                       const SizedBox(width: 16),
                                       FilterChip(
-                                        label: const Text('读音', style: TextStyle(fontSize: 16)),
+                                        label: const Text('读音', style: TextStyle(fontSize: 20)),
                                         selected: _controller.showPronunciation,
+                                        showCheckmark: false,
                                         onSelected: (value) => setState(() {
                                           _controller.showPronunciation = value;
                                         }),
@@ -267,8 +268,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                       ),
                                       const SizedBox(width: 16),
                                       FilterChip(
-                                        label: const Text('释义', style: TextStyle(fontSize: 16)),
+                                        label: const Text('释义', style: TextStyle(fontSize: 20)),
                                         selected: _controller.showMeaning,
+                                        showCheckmark: false,
                                         onSelected: (value) => setState(() {
                                           _controller.showMeaning = value;
                                         }),
