@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final StorageManager _storageManager =
       StorageManager(Supabase.instance.client);
   final TTSService _ttsService = TTSService();
-  int _selectedIndex = 0; // 当前选中的页面索引
+  int _selectedIndex = 1; // 当前选中的页面索引
 
   Future<void> _clearTTSCache() async {
     try {
@@ -48,11 +48,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ttsService: TTSService(),
       setState: setState,
       context: context,
-    );
-    // 页面列表
+    ); // 页面列表
     final List<Widget> _pages = [
-      VocabularyScreen(controller: controller), // 生词本页面
       const WordListScreen(), // 单词列表页面
+      VocabularyScreen(controller: controller), // 生词本页面
       const SettingsScreen(), // 设置页面
     ];
     return Scaffold(
@@ -61,15 +60,18 @@ class _HomeScreenState extends State<HomeScreen> {
         width: MediaQuery.of(context).size.width / 3, // 屏幕宽度的三分之一
         height: 50.0,
         margin: const EdgeInsets.only(top: 60),
-        child: FloatingActionButton(
-          onPressed: () {
-            // 中间按钮的点击事件
-            setState(() {
-              _selectedIndex = 0; // 例如，切换到第二个页面
-            });
-          },
-          child: const Icon(Icons.book, size: 36), // 更大的图标
-        ),
+        // child: FloatingActionButton(
+        //   backgroundColor: _selectedIndex == 0
+        //       ? Theme.of(context).bannerTheme.backgroundColor
+        //       : Theme.of(context).appBarTheme.backgroundColor,
+        //   onPressed: () {
+        //     // 中间按钮的点击事件
+        //     setState(() {
+        //       _selectedIndex = 0; // 例如，切换到第二个页面
+        //     });
+        //   },
+        //   child: const Icon(Icons.book, size: 36), // 更大的图标
+        // ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
@@ -82,40 +84,116 @@ class _HomeScreenState extends State<HomeScreen> {
         // notchMargin: -20.0,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            Expanded(
-              // padding: const EdgeInsets.only(bottom: 2),
-              child: IconButton(
-                // padding: EdgeInsets.all(10),
-                // constraints: const BoxConstraints(),
-                color: _selectedIndex == 1
-                    ? Theme.of(context).bannerTheme.backgroundColor
-                    : Colors.grey,
-                icon: const Icon(Icons.list),
-                onPressed: () {
-                  setState(() {
-                    _selectedIndex = 1;
-                  });
-                },
+          children: List.generate(_pages.length, (index) {
+            // 定义每个页面对应的图标
+            IconData icon;
+            switch (index) {
+              case 0:
+                icon = Icons.list;
+                break;
+              case 1:
+                icon = Icons.book;
+                break;
+              case 2:
+                icon = Icons.settings;
+                break;
+              default:
+                icon = Icons.error;
+            }
+
+            return Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14.0),
+                  color: _selectedIndex == index
+                      ? Theme.of(context).appBarTheme.backgroundColor
+                      : Theme.of(context).bannerTheme.backgroundColor,
+                ),
+                child: IconButton(
+                  color: _selectedIndex == index ? Colors.white : Colors.grey,
+                  icon: AnimatedScale(
+                    scale: _selectedIndex == index ? 1.2 : 1.0, // 选中时放大1.2倍
+                    duration: const Duration(milliseconds: 200), // 动画持续时间
+                    curve: Curves.easeInOut, // 动画曲线
+                    child: Icon(icon, size: index == 0 ? 32 : 28),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
+                ),
               ),
-            ),
-            const Expanded(
-              child: SizedBox(), // 自动占据剩余空间
-            ),
-            Expanded(
-              child: IconButton(
-                   color: _selectedIndex == 2
-                    ? Theme.of(context).bannerTheme.backgroundColor
-                    : Colors.grey,
-                icon: const Icon(Icons.settings),
-                onPressed: () {
-                  setState(() {
-                    _selectedIndex = 2;
-                  });
-                },
-              ),
-            ),
-          ],
+            );
+          }),
+          // children: <Widget>[
+          //   Expanded(
+          //     child: Container(
+          //       // height: 60.0,
+          //       decoration: BoxDecoration(
+          //         // 设置圆角
+          //         borderRadius: BorderRadius.circular(14.0), // 可以调整数值来改变圆角大小
+          //         color: _selectedIndex == 1
+          //             ? Theme.of(context).appBarTheme.backgroundColor
+          //             : Theme.of(context).bannerTheme.backgroundColor,
+          //       ),
+          //       child: IconButton(
+          //         // constraints: const BoxConstraints(minHeight: 800),
+          //         color: _selectedIndex == 1 ? Colors.white : Colors.grey,
+          //         icon: const Icon(Icons.list,size: 28),
+          //         onPressed: () {
+          //           setState(() {
+          //             _selectedIndex = 1;
+          //           });
+          //         },
+          //       ),
+          //     ),
+          //   ),
+          //         Expanded(
+          //     child: Container(
+          //       // height: 60.0,
+          //       decoration: BoxDecoration(
+          //         // 设置圆角
+          //         borderRadius: BorderRadius.circular(14.0), // 可以调整数值来改变圆角大小
+          //         color: _selectedIndex == 0
+          //             ? Theme.of(context).appBarTheme.backgroundColor
+          //             : Theme.of(context).bannerTheme.backgroundColor,
+          //       ),
+          //       child: IconButton(
+          //         // constraints: const BoxConstraints(minHeight: 800),
+          //         color: _selectedIndex == 0 ? Colors.white : Colors.grey,
+          //         icon: const Icon(Icons.book,size: 32),
+          //         onPressed: () {
+          //           setState(() {
+          //             _selectedIndex = 0;
+          //           });
+          //         },
+          //       ),
+          //     ),
+          //   ),
+          //   Expanded(
+          //     child: Container(
+          //       // height: 60.0,
+          //       decoration: BoxDecoration(
+          //         // 设置圆角
+          //         borderRadius: BorderRadius.circular(14.0), // 可以调整数值来改变圆角大小
+          //         color: _selectedIndex == 2
+          //             ? Theme.of(context).appBarTheme.backgroundColor
+          //             : Theme.of(context).bannerTheme.backgroundColor,
+          //       ),
+          //       child: IconButton(
+          //         // constraints: const BoxConstraints(minHeight: 800),
+          //         color: _selectedIndex == 2 ? Colors.white : Colors.grey,
+          //         icon: const Icon(Icons.settings,size: 28),
+          //         onPressed: () {
+          //           setState(() {
+          //             _selectedIndex = 2;
+          //           });
+          //         },
+          //       ),
+          //     ),
+          //   ),
+          // ],
         ),
       ),
     );

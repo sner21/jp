@@ -325,14 +325,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             title: const Text('缓存清理'),
-            trailing: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: themeService.themeColor,
-                shape: BoxShape.circle,
-              ),
-            ),
+            // trailing: Container(
+            //   width: 24,
+            //   height: 24,
+            //   decoration: BoxDecoration(
+            //     color: themeService.themeColor,
+            //     shape: BoxShape.circle,
+            //   ),
+            // ),
             onTap: () {
               _clearTTSCache();
             },
