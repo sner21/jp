@@ -54,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
       VocabularyScreen(controller: controller), // 生词本页面
       const SettingsScreen(), // 设置页面
     ];
+    print(333);
+
     return Scaffold(
       body: _pages[_selectedIndex],
       floatingActionButton: Container(

@@ -8,12 +8,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 class VocabularyController {
+  late final PageController pageController;
+  
   static VocabularyController? _instance;
   
   static VocabularyController getInstance({
     required StorageManager storageManager,
     required TTSService ttsService,
-    required Function(VoidCallback) setState,
+    required Function setState,
     required BuildContext context,
   }) {
     _instance ??= VocabularyController(
@@ -27,7 +29,7 @@ class VocabularyController {
 
   final StorageManager storageManager;
   final TTSService ttsService;
-  final Function(VoidCallback) setState;
+  final Function setState;
   final BuildContext context;
 
   List<Word> words = [];
@@ -46,7 +48,13 @@ class VocabularyController {
     required this.ttsService,
     required this.setState,
     required this.context,
-  });
+  }) {
+    pageController = PageController(initialPage: currentWordIndex);
+  }
+  
+  void dispose() {
+    pageController.dispose();
+  }
 
   Future<void> loadWords() async {
     final loadedWords = await storageManager.getAllWords();

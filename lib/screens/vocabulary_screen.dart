@@ -25,23 +25,30 @@ class VocabularyScreen extends StatefulWidget {
 }
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
-  late final PageController _pageController;
+  // late final PageController _pageController;
   late final _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller;
-    _pageController = PageController(initialPage: _controller.currentWordIndex);
-    _controller.loadWords();
-    
-    // 监听登录状态变化
     Supabase.instance.client.auth.onAuthStateChange.listen((event) {
       if (event.event == AuthChangeEvent.signedIn) {
         _controller.storageManager.syncToCloud();
       }
       _controller.loadWords();
     });
+    // _pageController = PageController(initialPage: _controller.currentWordIndex);
+
+    // _controller.loadWords();
+
+    // 监听登录状态变化
+    // Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+    //   if (event.event == AuthChangeEvent.signedIn) {
+    //     _controller.storageManager.syncToCloud();
+    //   }
+    //   _controller.loadWords();
+    // });
   }
 
   @override
@@ -55,16 +62,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           //   icon: const Icon(Icons.add),
           //   onPressed: () => _showWordDialog(),
           // ),
-          if (_controller.isListView)IconButton(
-            icon: Icon(_controller.isSelectMode ? Icons.close : Icons.select_all),
-            tooltip: _controller.isSelectMode ? '退出选择' : '批量选择',
-            onPressed: () {
-              setState(() {
-                _controller.isSelectMode = !_controller.isSelectMode;
-                _controller.selectedWords.clear();
-              });
-            },
-          ),
+          if (_controller.isListView)
+            IconButton(
+              icon: Icon(
+                  _controller.isSelectMode ? Icons.close : Icons.select_all),
+              tooltip: _controller.isSelectMode ? '退出选择' : '批量选择',
+              onPressed: () {
+                setState(() {
+                  _controller.isSelectMode = !_controller.isSelectMode;
+                  _controller.selectedWords.clear();
+                });
+              },
+            ),
           if (_controller.isSelectMode && _controller.selectedWords.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete),
@@ -73,11 +82,10 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
                 try {
                   await _controller.deleteSelected();
-                  
                   scaffoldMessenger.showSnackBar(
                     const SnackBar(content: Text('批量删除成功')),
                   );
-                  
+
                   setState(() {
                     _controller.isSelectMode = false;
                   });
@@ -89,19 +97,26 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               },
             ),
           IconButton(
-            icon: Icon(_controller.isListView ? Icons.view_agenda : Icons.view_list),
+            icon: Icon(
+                _controller.isListView ? Icons.view_agenda : Icons.view_list),
             tooltip: _controller.isListView ? '卡片视图' : '列表视图',
             onPressed: () {
+              // final targetIndex = _controller.currentWordIndex;
               setState(() {
                 _controller.isListView = !_controller.isListView;
+                // if (!_controller.isListView) {
+                //   _pageController
+                //       .jumpToPage(_controller.currentWordIndex);
+                // }
               });
             },
           ),
-                    PopupMenuButton<String>(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.file_upload),
             onSelected: (value) {
               if (value == 'text') {
-                ImportDialogs.showTextImportDialog(context, _controller.importFromText);
+                ImportDialogs.showTextImportDialog(
+                    context, _controller.importFromText);
               } else if (value == 'file') {
                 ImportDialogs.importFromFile(_controller.importFromText);
               }
@@ -118,10 +133,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 ),
             ],
           ),
-                    IconButton(
+          IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () async {
-              final categories = await _controller.storageManager.getAllCategories();
+              final categories =
+                  await _controller.storageManager.getAllCategories();
               if (!mounted) return;
               showDialog(
                 context: context,
@@ -135,7 +151,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                           title: const Text('全部'),
                           onTap: () async {
                             Navigator.pop(context);
-                            final allWords = await _controller.storageManager.getAllWords();
+                            final allWords =
+                                await _controller.storageManager.getAllWords();
                             setState(() {
                               _controller.filteredWords = allWords;
                               _controller.currentWordIndex = 0;
@@ -143,16 +160,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                           },
                         ),
                         ...categories.map((category) => ListTile(
-                          title: Text(category),
-                          onTap: () async {
-                            Navigator.pop(context);
-                            final categoryWords = await _controller.storageManager.getWordsByCategory(category);
-                            setState(() {
-                              _controller.filteredWords = categoryWords;
-                              _controller.currentWordIndex = 0;
-                            });
-                          },
-                        )),
+                              title: Text(category),
+                              onTap: () async {
+                                Navigator.pop(context);
+                                final categoryWords = await _controller
+                                    .storageManager
+                                    .getWordsByCategory(category);
+                                setState(() {
+                                  _controller.filteredWords = categoryWords;
+                                  _controller.currentWordIndex = 0;
+                                });
+                              },
+                            )),
                       ],
                     ),
                   ),
@@ -177,37 +196,39 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             child: _buildHeader(),
           ),
           Expanded(
-            child: _controller.filteredWords.isEmpty
-                ? const Center(child: Text('没有单词'))
-                : _controller.isListView 
-                    ? WordListView(
-                        words: _controller.filteredWords,
-                        ttsService: _controller.ttsService,
-                        isSelectMode: _controller.isSelectMode,
-                        selectedWords: _controller.selectedWords,
-                        showPronunciation: _controller.showPronunciation,
-                        showWordOptions: _showWordOptions,
-                        toggleWordSelection: (String wordId) {
-                          setState(() {
-                            if (_controller.selectedWords.contains(wordId)) {
-                              _controller.selectedWords.remove(wordId);
-                            } else {
-                              _controller.selectedWords.add(wordId);
-                            }
-                          });
-                        },
-                        onWordTap: (int index) {
-                          setState(() {
-                            _controller.currentWordIndex = index;
-                            _controller.isListView = false;
-                          });
-                        },
-                      )
+            child: IndexedStack(
+              index: _controller.isListView ? 0 : 1,
+              children: [
+                WordListView(
+                  words: _controller.filteredWords,
+                  ttsService: _controller.ttsService,
+                  isSelectMode: _controller.isSelectMode,
+                  selectedWords: _controller.selectedWords,
+                  showPronunciation: _controller.showPronunciation,
+                  showWordOptions: _showWordOptions,
+                  toggleWordSelection: (String wordId) {
+                    setState(() {
+                      if (_controller.selectedWords.contains(wordId)) {
+                        _controller.selectedWords.remove(wordId);
+                      } else {
+                        _controller.selectedWords.add(wordId);
+                      }
+                    });
+                  },
+                  onWordTap: (int index) {
+                    setState(() {
+                      _controller.currentWordIndex = index;
+                      _controller.isListView = false;
+                    });
+                  },
+                ),
+                _controller.filteredWords.isEmpty
+                    ? const Center(child: Text('没有单词'))
                     : Column(
                         children: [
                           Expanded(
                             child: PageView.builder(
-                              controller: _pageController,
+                              controller: _controller.pageController,
                               onPageChanged: (index) {
                                 setState(() {
                                   _controller.currentWordIndex = index;
@@ -219,14 +240,16 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                   word: _controller.filteredWords[index],
                                   ttsService: _controller.ttsService,
                                   showJapanese: _controller.showJapanese,
-                                  showPronunciation: _controller.showPronunciation,
+                                  showPronunciation:
+                                      _controller.showPronunciation,
                                   showMeaning: _controller.showMeaning,
                                 );
                               },
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 16.0, horizontal: 8.0),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               boxShadow: [
@@ -241,75 +264,71 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                             child: Column(
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 16.0),
+                                  padding:
+                                      const EdgeInsets.only(bottom: 16.0),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
                                     children: [
                                       FilterChip(
-                                        label: const Text('单词', style: TextStyle(fontSize: 20)),
+                                        label: const Text('单词',
+                                            style: TextStyle(fontSize: 20)),
                                         selected: _controller.showJapanese,
-                                        showCheckmark: false, 
+                                        showCheckmark: false,
                                         onSelected: (value) => setState(() {
                                           _controller.showJapanese = value;
                                         }),
-                                        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        selectedColor: Theme.of(context)
+                                            .primaryColor
+                                            .withOpacity(0.2),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 8),
                                       ),
                                       const SizedBox(width: 16),
                                       FilterChip(
-                                        label: const Text('读音', style: TextStyle(fontSize: 20)),
-                                        selected: _controller.showPronunciation,
+                                        label: const Text('读音',
+                                            style: TextStyle(fontSize: 20)),
+                                        selected:
+                                            _controller.showPronunciation,
                                         showCheckmark: false,
                                         onSelected: (value) => setState(() {
-                                          _controller.showPronunciation = value;
+                                          _controller.showPronunciation =
+                                              value;
                                         }),
-                                        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        selectedColor: Theme.of(context)
+                                            .primaryColor
+                                            .withOpacity(0.2),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 8),
                                       ),
                                       const SizedBox(width: 16),
                                       FilterChip(
-                                        label: const Text('释义', style: TextStyle(fontSize: 20)),
+                                        label: const Text('释义',
+                                            style: TextStyle(fontSize: 20)),
                                         selected: _controller.showMeaning,
                                         showCheckmark: false,
                                         onSelected: (value) => setState(() {
                                           _controller.showMeaning = value;
                                         }),
-                                        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        selectedColor: Theme.of(context)
+                                            .primaryColor
+                                            .withOpacity(0.2),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 8),
                                       ),
                                     ],
                                   ),
                                 ),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.arrow_back_ios, size: 28),
-                                      onPressed: _controller.currentWordIndex > 0
-                                          ? () {
-                                              _pageController.previousPage(
-                                                duration: const Duration(milliseconds: 300),
-                                                curve: Curves.easeInOut,
-                                              );
-                                            }
-                                          : null,
-                                      padding: const EdgeInsets.all(12),
-                                    ),
-                                    Text(
-                                      '${_controller.currentWordIndex + 1}/${_controller.filteredWords.length}',
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.arrow_forward_ios, size: 28),
-                                      onPressed: _controller.currentWordIndex < _controller.filteredWords.length - 1
-                                          ? () {
-                                              _pageController.nextPage(
-                                                duration: const Duration(milliseconds: 300),
-                                                curve: Curves.easeInOut,
-                                              );
-                                            }
-                                          : null,
-                                      padding: const EdgeInsets.all(12),
+                                    GestureDetector(
+                                      onTap: () =>
+                                          _showPageJumpDialog(context),
+                                      child: Text(
+                                        '${_controller.currentWordIndex + 1}/${_controller.filteredWords.length}',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -318,13 +337,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                           ),
                         ],
                       ),
+              ],
+            ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showWordDialog(),  // 调用添加单词的方法
-        child: const Icon(Icons.add),
-        tooltip: '添加单词',
+      floatingActionButton: Visibility(
+        visible: !_controller.isListView,
+        child: FloatingActionButton(
+          onPressed: () => _showWordDialog(),
+          child: const Icon(Icons.add),
+          tooltip: '添加单词',
+        ),
       ),
     );
   }
@@ -418,7 +442,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   void _showWordOptions(Word word) {
     // 保存 BuildContext 的引用
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
+
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) => Column(
@@ -437,30 +461,29 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             title: const Text('删除'),
             onTap: () async {
               Navigator.pop(context);
-              
+
               try {
                 // 更新本地存储
                 final box = await Hive.openBox<Word>('words');
                 await box.delete(word.id);
-                
+
                 // 如果已登录，同步到云端
                 if (_controller.storageManager.isLoggedIn) {
                   await _controller.storageManager.deleteWord(word.id);
                 }
-                
+
                 // 重新加载单词列表
                 await _controller.loadWords();
-                
+
                 // 使用保存的 scaffoldMessenger 显示消息
                 scaffoldMessenger.showSnackBar(
                   const SnackBar(content: Text('删除成功')),
                 );
-                
+
                 // 更新状态
                 if (mounted) {
                   setState(() {});
                 }
-                
               } catch (e) {
                 // 使用保存的 scaffoldMessenger 显示错误消息
                 scaffoldMessenger.showSnackBar(
@@ -504,12 +527,14 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   japanese: form.japaneseController.text,
                   pronunciation: form.pronunciationController.text,
                   meaning: form.meaningController.text,
-                  category: form.categoryController.text.isEmpty ? null : form.categoryController.text,
+                  category: form.categoryController.text.isEmpty
+                      ? null
+                      : form.categoryController.text,
                 );
 
                 final box = await Hive.openBox<Word>('words');
                 await box.put(newWord.id, newWord);
-                
+
                 if (_controller.storageManager.isLoggedIn) {
                   if (isEditing) {
                     await _controller.storageManager.updateWord(newWord);
@@ -524,10 +549,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                     SnackBar(content: Text('${isEditing ? '更新' : '添加'}成功')),
                   );
                 }
-                
+
                 setState(() {
                   if (isEditing) {
-                    final index = _controller.filteredWords.indexWhere((w) => w.id == word.id);
+                    final index = _controller.filteredWords
+                        .indexWhere((w) => w.id == word.id);
                     if (index != -1) {
                       _controller.filteredWords[index] = newWord;
                     }
@@ -550,10 +576,62 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     );
   }
 
+  void _showPageJumpDialog(BuildContext context) {
+    final TextEditingController pageController = TextEditingController();
+    final int totalPages = _controller.filteredWords.length;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('跳转到指定页'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: pageController,
+              keyboardType: TextInputType.number, // 只允许输入数字
+              decoration: InputDecoration(
+                labelText: '页码 (1-$totalPages)',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('总页数: $totalPages'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              // 获取输入的页码
+              final pageNum = int.tryParse(pageController.text);
+              if (pageNum != null && pageNum >= 1 && pageNum <= totalPages) {
+                // 更新页码并关闭对话框
+                setState(() {
+                  _controller.currentWordIndex = pageNum - 1;
+                  _controller.pageController.jumpToPage(pageNum - 1);
+                });
+                Navigator.pop(context);
+              } else {
+                // 显示错误提示
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('请输入有效页码 (1-$totalPages)')),
+                );
+              }
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _pageController.dispose();
     _controller.ttsService.stop();
     super.dispose();
   }
-} 
+}
