@@ -87,28 +87,28 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 });
               },
             ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.file_upload),
-            onSelected: (value) {
-              if (value == 'text') {
-                ImportDialogs.showTextImportDialog(
-                    context, _controller.importFromText);
-              } else if (value == 'file') {
-                ImportDialogs.importFromFile(_controller.importFromText);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'text',
-                child: Text('文本导入'),
-              ),
-              if (!kIsWeb)
-                const PopupMenuItem(
-                  value: 'file',
-                  child: Text('文件导入'),
-                ),
-            ],
-          ),
+          // PopupMenuButton<String>(
+          //   icon: const Icon(Icons.file_upload),
+          //   onSelected: (value) {
+          //     if (value == 'text') {
+          //       ImportDialogs.showTextImportDialog(
+          //           context, _controller.importFromText);
+          //     } else if (value == 'file') {
+          //       ImportDialogs.importFromFile(_controller.importFromText);
+          //     }
+          //   },
+          //   itemBuilder: (context) => [
+          //     const PopupMenuItem(
+          //       value: 'text',
+          //       child: Text('文本导入'),
+          //     ),
+          //     if (!kIsWeb)
+          //       const PopupMenuItem(
+          //         value: 'file',
+          //         child: Text('文件导入'),
+          //       ),
+          //   ],
+          // ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () async {

@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
         controller: _vocabularyController, 
         mode: 2,
       ),
-      const SettingsScreen(),
+      SettingsScreen( controller: _vocabularyController),
     ];
   }
   @override
@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<Widget> _pages = [
       const WordListScreen(), 
       VocabularyScreen(controller: _vocabularyController),
-      const SettingsScreen(),
+      SettingsScreen(controller: _vocabularyController),
     ];
     return Scaffold(
       body: IndexedStack(

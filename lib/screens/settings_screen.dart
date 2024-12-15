@@ -6,9 +6,16 @@ import '../services/theme_service.dart';
 import '../services/storage_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/login_dialog.dart';
+import '../widgets/import_dialogs.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../controllers/vocabulary_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final VocabularyController controller;
+  const SettingsScreen({
+    super.key,
+    required this.controller,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -168,8 +175,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('设置'),
-        actions: [
+        // actions: [
+        //   PopupMenuButton<String>(
+        //     onSelected: (value) async {
+        //       switch (value) {
+        //         case 'clear_cache':
+        //           await _clearTTSCache();
+        //           break;
+        //         case 'register':
+        //           _handleAuthAction(context, false, isRegister: true);
+        //           break;
+        //         case 'login':
+        //           _handleAuthAction(context, false);
+        //           break;
+        //         case 'logout':
+        //           _handleAuthAction(context, true);
+        //           break;
+        //       }
+        //     },
+        //     itemBuilder: (context) => [
+        //       if (!_storageManager.isLoggedIn) ...[
+        //         const PopupMenuItem(
+        //           value: 'register',
+        //           child: Row(
+        //             children: [
+        //               Icon(Icons.person_add),
+        //               SizedBox(width: 8),
+        //               Text('注册'),
+        //             ],
+        //           ),
+        //         ),
+        //         const PopupMenuItem(
+        //           value: 'login',
+        //           child: Row(
+        //             children: [
+        //               Icon(Icons.login),
+        //               SizedBox(width: 8),
+        //               Text('登录'),
+        //             ],
+        //           ),
+        //         ),
+        //       ] else
+        //         const PopupMenuItem(
+        //           value: 'logout',
+        //           child: Row(
+        //             children: [
+        //               Icon(Icons.logout),
+        //               SizedBox(width: 8),
+        //               Text('退出登录'),
+        //             ],
+        //           ),
+        //         ),
+        //     ],
+        //   ),
+        // ],
+      ),
+      body: ListView(
+        children: [
           PopupMenuButton<String>(
+            child: ListTile(
+              title: Text(_storageManager.isLoggedIn?'注销':"未登录"),
+            ),
             onSelected: (value) async {
               switch (value) {
                 case 'clear_cache':
@@ -187,17 +253,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             },
             itemBuilder: (context) => [
-              // const PopupMenuItem(
-              //   value: 'clear_cache',
-              //   child: Row(
-              //     children: [
-              //       Icon(Icons.cleaning_services),
-              //       SizedBox(width: 8),
-              //       Text('清理语音缓存'),
-              //     ],
-              //   ),
-              // ),
-              // 登录/登出选项
               if (!_storageManager.isLoggedIn) ...[
                 const PopupMenuItem(
                   value: 'register',
@@ -232,10 +287,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
             ],
           ),
-        ],
-      ),
-      body: ListView(
-        children: [
           ListTile(
             title: const Text('主题颜色'),
             trailing: Container(
@@ -288,6 +339,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               );
             },
+          ),
+          PopupMenuButton<String>(
+            style: const ButtonStyle(
+              alignment: Alignment.centerLeft,
+            ),
+            // icon: const Icon(Icons.file_upload),
+            onSelected: (value) {
+              if (value == 'text') {
+                ImportDialogs.showTextImportDialog(
+                    context, widget.controller.importFromText);
+              } else if (value == 'file') {
+                ImportDialogs.importFromFile(widget.controller.importFromText);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'text',
+                child: Text('文本导入'),
+              ),
+              if (!kIsWeb)
+                const PopupMenuItem(
+                  value: 'file',
+                  child: Text('文件导入'),
+                ),
+            ],
+            child: const ListTile(
+              title: Text('导入数据'),
+            ),
           ),
           ListTile(
             title: const Text('TTS 语言'),
