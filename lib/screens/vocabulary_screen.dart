@@ -28,26 +28,16 @@ class VocabularyScreen extends StatefulWidget {
 }
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
-  // late final PageController _pageController;
   late final _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller;
-    // _controller.mode = widget.mode;
-    // if (widget.mode != 0) {
-    //   _controller.isListView = widget.mode == 1 ? true : false;
-    // }
   }
 
   @override
   Widget build(BuildContext context) {
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   if (mounted && _controller.pageController.hasClients) {
-    //     _controller.pageController.jumpToPage(_controller.currentWordIndex);
-    //   }
-    // });
     return Scaffold(
       appBar: AppBar(
         title: const Text('生词本'),
@@ -75,7 +65,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   scaffoldMessenger.showSnackBar(
                     const SnackBar(content: Text('批量删除成功')),
                   );
-
                   setState(() {
                     _controller.isSelectMode = false;
                   });
@@ -434,7 +423,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   // }
 
   void _showWordOptions(Word word) {
-    // 保存 BuildContext 的引用
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     showModalBottomSheet(
@@ -455,31 +443,20 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             title: const Text('删除'),
             onTap: () async {
               Navigator.pop(context);
-
               try {
-                // 更新本地存储
                 final box = await Hive.openBox<Word>('words');
                 await box.delete(word.id);
-
-                // 如果已登录，同步到云端
                 if (_controller.storageManager.isLoggedIn) {
                   await _controller.storageManager.deleteWord(word.id);
                 }
-
-                // 重新加载单词列表
                 await _controller.loadWords();
-
-                // 使用保存的 scaffoldMessenger 显示消息
                 scaffoldMessenger.showSnackBar(
                   const SnackBar(content: Text('删除成功')),
                 );
-
-                // 更新状态
                 if (mounted) {
                   setState(() {});
                 }
               } catch (e) {
-                // 使用保存的 scaffoldMessenger 显示错误消息
                 scaffoldMessenger.showSnackBar(
                   SnackBar(content: Text('删除失败: $e')),
                 );
@@ -583,7 +560,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           children: [
             TextField(
               controller: pageController,
-              keyboardType: TextInputType.number, // 只允许输入数字
+              keyboardType: TextInputType.number, 
               decoration: InputDecoration(
                 labelText: '页码 (1-$totalPages)',
                 border: const OutlineInputBorder(),
@@ -600,17 +577,14 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           ),
           TextButton(
             onPressed: () {
-              // 获取输入的页码
               final pageNum = int.tryParse(pageController.text);
               if (pageNum != null && pageNum >= 1 && pageNum <= totalPages) {
-                // 更新页码并关闭对话框
                 setState(() {
                   _controller.currentWordIndex = pageNum - 1;
                   _controller.pageController.jumpToPage(pageNum - 1);
                 });
                 Navigator.pop(context);
               } else {
-                // 显示错误提示
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('请输入有效页码 (1-$totalPages)')),
                 );

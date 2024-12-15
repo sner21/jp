@@ -87,13 +87,11 @@ class VocabularyController {
     });
     
     if (category == null) {
-      // 如果选择"全部"，加载所有单词
       await loadWords();
     } else {
-      // 如果选择具体分类，筛选该分类的单词
       setState(() {
         filteredWords = words.where((word) => word.category == category).toList();
-        currentWordIndex = 0;  // 重置当前单词索引
+        currentWordIndex = 0; 
       });
     }
   }
@@ -106,20 +104,16 @@ class VocabularyController {
 
       debugPrint('开始解析CSV文本: $text');
       
-      // 分割文本为行
       List<String> lines = text.split('\n');
       debugPrint('分割后的行: $lines');
       
-      // 手动解析CSV
       List<List<String>> rows = lines.map((line) => 
         line.split(',').map((cell) => cell.trim()).toList()
       ).toList();
       
       debugPrint('解析后的行: $rows');
       
-      // 转换为Word对象
       List<Word> words = [];
-      // 跳过标题行
       for (var i = 1; i < rows.length; i++) {
         var row = rows[i];
         debugPrint('处理行: $row');
@@ -167,27 +161,16 @@ class VocabularyController {
     try {
       final box = await Hive.openBox<Word>('words');
       
-      // 创建所有删除操作的Future列表
       final List<Future<void>> deleteFutures = selectedWords.map((wordId) async {
-        // 本地删除
         await box.delete(wordId);
-        
-        // 如果已登录，同时删除云端数据
         if (storageManager.isLoggedIn) {
           await storageManager.deleteWord(wordId);
         }
       }).toList();
-      
-      // 并行执行所有删除操作
       await Future.wait(deleteFutures);
-      
-      // 清空选中列表并退出选择模式
       selectedWords.clear();
       isSelectMode = false;
-      
-      // 重新加载单词列表
       await loadWords();
-      
     } catch (e) {
       print('批量删除失败: $e');
       rethrow;

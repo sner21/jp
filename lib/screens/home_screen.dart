@@ -88,10 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomAppBar(
         shadowColor: Colors.grey,
         height: 60.0,
-        // elevation: 8.0, // 阴影高度
-        // padding: const EdgeInsets.symmetric(horizontal: 0,vertical: 0,), // 内边距
-        padding: const EdgeInsets.only(bottom: 0, top: 0), // 内边距
-        // clipBehavior: Clip.antiAlias, // 裁剪行为
+        // elevation: 8.0, 
+        // padding: const EdgeInsets.symmetric(horizontal: 0,vertical: 0,),
+        padding: const EdgeInsets.only(bottom: 0, top: 0), 
+        // clipBehavior: Clip.antiAlias, 
         shape: null,
         color: Colors.white,
         // notchMargin: -20.0,
