@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../models/word.dart';
 import '../services/storage_manager.dart';
 import '../services/tts_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +7,7 @@ import '../widgets/word_list_view.dart';
 import '../widgets/word_card_view.dart';
 import '../widgets/import_dialogs.dart';
 import '../controllers/vocabulary_controller.dart';
+import '../models/word.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/word_form.dart';

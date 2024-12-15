@@ -5,6 +5,7 @@ import '../widgets/login_dialog.dart';
 import '../services/storage_manager.dart';
 import '../services/tts_service.dart';
 import '../screens/settings_screen.dart';
+import '../screens/import_screen.dart';
 import 'word_list_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
@@ -57,20 +58,21 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     _pages = [
       VocabularyScreen(
-        controller: _vocabularyController, 
+        controller: _vocabularyController,
         mode: 1,
       ),
       VocabularyScreen(
-        controller: _vocabularyController, 
+        controller: _vocabularyController,
         mode: 2,
       ),
-      SettingsScreen( controller: _vocabularyController),
+      SettingsScreen(controller: _vocabularyController),
     ];
   }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
-      const WordListScreen(), 
+      ImportScreen(controller: _vocabularyController),
       VocabularyScreen(controller: _vocabularyController),
       SettingsScreen(controller: _vocabularyController),
     ];
@@ -88,10 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomAppBar(
         shadowColor: Colors.grey,
         height: 60.0,
-        // elevation: 8.0, 
+        // elevation: 8.0,
         // padding: const EdgeInsets.symmetric(horizontal: 0,vertical: 0,),
-        padding: const EdgeInsets.only(bottom: 0, top: 0), 
-        // clipBehavior: Clip.antiAlias, 
+        padding: const EdgeInsets.only(bottom: 0, top: 0),
+        // clipBehavior: Clip.antiAlias,
         shape: null,
         color: Colors.white,
         // notchMargin: -20.0,
@@ -124,10 +126,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           : Theme.of(context).bannerTheme.backgroundColor,
                     ),
                     child: IconButton(
-                      color:
-                          _vocabularyController.selectedIndex == index ? Colors.white : Colors.grey,
+                      color: _vocabularyController.selectedIndex == index
+                          ? Colors.white
+                          : Colors.grey,
                       icon: AnimatedScale(
-                        scale: _vocabularyController.selectedIndex == index ? 1.2 : 1.0, // 选中时放大1.2倍
+                        scale: _vocabularyController.selectedIndex == index
+                            ? 1.2
+                            : 1.0, // 选中时放大1.2倍
                         duration: const Duration(milliseconds: 200), // 动画持续时间
                         curve: Curves.easeInOut, // 动画曲线
                         child: Icon(icon, size: index == 0 ? 32 : 28),
