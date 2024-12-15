@@ -32,12 +32,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   void initState() {
     super.initState();
     _controller = widget.controller;
-    Supabase.instance.client.auth.onAuthStateChange.listen((event) {
-      if (event.event == AuthChangeEvent.signedIn) {
-        _controller.storageManager.syncToCloud();
-      }
-      _controller.loadWords();
-    });
+
     // _pageController = PageController(initialPage: _controller.currentWordIndex);
 
     // _controller.loadWords();
@@ -136,8 +131,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () async {
-              final categories =
-                  await _controller.storageManager.getAllCategories();
+              final categories = _controller.storageManager.categoriesList;
               if (!mounted) return;
               showDialog(
                 context: context,
@@ -248,8 +242,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                             ),
                           ),
                           Container(
+                            // margin: const EdgeInsets.only(top: 16.0),
                             padding: const EdgeInsets.symmetric(
-                                vertical: 16.0, horizontal: 8.0),
+                                vertical: 24.0, horizontal: 8.0),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               boxShadow: [
@@ -261,11 +256,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                 ),
                               ],
                             ),
-                            child: Column(
+                            child: Column(        
                               children: [
                                 Padding(
                                   padding:
-                                      const EdgeInsets.only(bottom: 16.0),
+                                      const EdgeInsets.only(bottom: 28.0),
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.center,
@@ -327,7 +322,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                           _showPageJumpDialog(context),
                                       child: Text(
                                         '${_controller.currentWordIndex + 1}/${_controller.filteredWords.length}',
-                                        style: const TextStyle(fontSize: 16),
+                                        style: const TextStyle(fontSize: 20),
                                       ),
                                     ),
                                   ],

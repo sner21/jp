@@ -2,14 +2,14 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/word.dart';
 import 'storage_interface.dart';
-import 'package:flutter/foundation.dart';  // 添加这行
-import 'dart:developer' as developer;      // 添加这行
+import 'package:flutter/foundation.dart'; // 添加这行
+import 'dart:developer' as developer; // 添加这行
 
 class StorageManager implements StorageInterface {
   final SupabaseClient _supabase;
   Box<Word>? _wordBox;
   bool get isLoggedIn => _supabase.auth.currentUser != null;
-
+  List categoriesList = [];
   StorageManager(this._supabase);
 
   Future<void> init() async {
@@ -21,21 +21,23 @@ class StorageManager implements StorageInterface {
   @override
   Future<List<Word>> getAllWords() async {
     await init();
-    
+
     if (isLoggedIn) {
       try {
         final response = await _supabase
             .from('words')
             .select()
             .eq('user_id', _supabase.auth.currentUser!.id);
-        
-        return (response as List).map((json) => Word(
-              id: json['id'].toString(),
-              japanese: json['japanese'],
-              pronunciation: json['pronunciation'],
-              meaning: json['meaning'],
-              category: json['category'],
-            )).toList();
+
+        return (response as List)
+            .map((json) => Word(
+                  id: json['id'].toString(),
+                  japanese: json['japanese'],
+                  pronunciation: json['pronunciation'],
+                  meaning: json['meaning'],
+                  category: json['category'],
+                ))
+            .toList();
       } catch (e) {
         return _wordBox!.values.toList();
       }
@@ -46,7 +48,7 @@ class StorageManager implements StorageInterface {
   @override
   Future<void> addWord(Word word) async {
     await init();
-    
+
     if (isLoggedIn) {
       final response = await _supabase.from('words').insert({
         'japanese': word.japanese,
@@ -55,15 +57,14 @@ class StorageManager implements StorageInterface {
         'category': word.category,
         'user_id': _supabase.auth.currentUser!.id,
       }).select();
-      
+
       if (response != null && response.isNotEmpty) {
         final newWord = word.copyWith(id: response[0]['id'].toString());
         await _wordBox!.put(newWord.id, newWord);
       }
     } else {
-      final newWord = word.copyWith(
-        id: DateTime.now().millisecondsSinceEpoch.toString()
-      );
+      final newWord =
+          word.copyWith(id: DateTime.now().millisecondsSinceEpoch.toString());
       await _wordBox!.put(newWord.id, newWord);
     }
   }
@@ -72,7 +73,7 @@ class StorageManager implements StorageInterface {
   Future<void> updateWord(Word word) async {
     await init();
     if (word.id == null) return;
-    
+
     if (isLoggedIn) {
       await _supabase.from('words').update({
         'japanese': word.japanese,
@@ -88,7 +89,7 @@ class StorageManager implements StorageInterface {
   Future<void> deleteWord(String? id) async {
     await init();
     if (id == null) return;
-    
+
     if (isLoggedIn) {
       await _supabase.from('words').delete().eq('id', id);
     }
@@ -99,12 +100,14 @@ class StorageManager implements StorageInterface {
   Future<List<String>> getAllCategories() async {
     await init();
     final words = await getAllWords();
-    return words
+    final data = words
         .map((word) => word.category)
         .where((category) => category != null)
         .map((category) => category!)
         .toSet()
         .toList();
+    categoriesList = data;
+    return data;
   }
 
   @override
@@ -119,18 +122,18 @@ class StorageManager implements StorageInterface {
     await init();
     final allWords = await getAllWords();
     final lowercaseQuery = query.toLowerCase();
-    
+
     return allWords.where((word) {
       return word.japanese.toLowerCase().contains(lowercaseQuery) ||
-             word.pronunciation.toLowerCase().contains(lowercaseQuery) ||
-             word.meaning.toLowerCase().contains(lowercaseQuery);
+          word.pronunciation.toLowerCase().contains(lowercaseQuery) ||
+          word.meaning.toLowerCase().contains(lowercaseQuery);
     }).toList();
   }
 
   Future<void> syncToCloud({bool forceLocal = false}) async {
     try {
       debugPrint('开始同步到云端');
-      
+
       // 先检查用户登录状态
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
@@ -141,12 +144,12 @@ class StorageManager implements StorageInterface {
       final box = await Hive.openBox<Word>('words');
       final localWords = box.values.toList();
       debugPrint('本地数据数量: ${localWords.length}');
-      
+
       // 获取云端数据
       final response = await _supabase
           .from('words')
           .select()
-          .eq('user_id', userId as String);  // 明确转换为非空字符串
+          .eq('user_id', userId as String); // 明确转换为非空字符串
       final cloudData = response as List;
       debugPrint('云端数据数量: ${cloudData.length}');
 
@@ -161,13 +164,11 @@ class StorageManager implements StorageInterface {
       if (localWords.isNotEmpty) {
         final wordsWithUserId = localWords.map((word) {
           final json = word.toJson();
-          json['user_id'] = userId;  // 使用非空的 userId
+          json['user_id'] = userId; // 使用非空的 userId
           return json;
         }).toList();
 
-        await _supabase
-            .from('words')
-            .upsert(wordsWithUserId);
+        await _supabase.from('words').upsert(wordsWithUserId);
         debugPrint('数据上传成功');
       }
     } catch (e) {
@@ -179,15 +180,15 @@ class StorageManager implements StorageInterface {
   Future<void> syncToLocal() async {
     await init();
     if (!isLoggedIn) return;
-    
+
     try {
       final response = await _supabase
           .from('words')
           .select()
           .eq('user_id', _supabase.auth.currentUser!.id);
-      
+
       await _wordBox!.clear();
-      
+
       for (final item in response) {
         final word = Word(
           id: item['id'].toString(),
@@ -218,9 +219,7 @@ class StorageManager implements StorageInterface {
         return json;
       }).toList();
 
-      await _supabase
-          .from('words')
-          .upsert(wordsWithUserId);
+      await _supabase.from('words').upsert(wordsWithUserId);
     } catch (e) {
       rethrow;
     }
@@ -233,7 +232,7 @@ class StorageManager implements StorageInterface {
         email: email,
         password: password,
       );
-      
+
       if (response.user == null) {
         throw Exception('注册失败');
       }
@@ -245,7 +244,6 @@ class StorageManager implements StorageInterface {
 
       // 如果邮箱已验证，可以继续处理
       debugPrint('注册成功，邮箱已验证');
-      
     } catch (e) {
       if (e.toString().contains('Email rate limit exceeded')) {
         throw Exception('该邮箱注册过于频繁，请稍后再试');
@@ -253,11 +251,13 @@ class StorageManager implements StorageInterface {
         throw Exception('该邮箱已被注册');
       } else if (e.toString().contains('Invalid email')) {
         throw Exception('邮箱格式不正确');
-      } else if (e.toString().contains('Password should be at least 6 characters')) {
+      } else if (e
+          .toString()
+          .contains('Password should be at least 6 characters')) {
         throw Exception('密码长度至少为6位');
       }
       debugPrint('注册失败: $e');
       rethrow;
     }
   }
-} 
+}
