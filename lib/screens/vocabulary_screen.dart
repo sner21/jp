@@ -11,13 +11,16 @@ import '../controllers/vocabulary_controller.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/word_form.dart';
+import 'package:flutter/services.dart';
 
 class VocabularyScreen extends StatefulWidget {
   final VocabularyController controller;
+  final int mode;
 
   const VocabularyScreen({
     super.key,
     required this.controller,
+    this.mode = 0,
   });
 
   @override
@@ -32,31 +35,23 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   void initState() {
     super.initState();
     _controller = widget.controller;
-
-    // _pageController = PageController(initialPage: _controller.currentWordIndex);
-
-    // _controller.loadWords();
-
-    // 监听登录状态变化
-    // Supabase.instance.client.auth.onAuthStateChange.listen((event) {
-    //   if (event.event == AuthChangeEvent.signedIn) {
-    //     _controller.storageManager.syncToCloud();
-    //   }
-    //   _controller.loadWords();
-    // });
+    // _controller.mode = widget.mode;
+    // if (widget.mode != 0) {
+    //   _controller.isListView = widget.mode == 1 ? true : false;
+    // }
   }
 
   @override
   Widget build(BuildContext context) {
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (mounted && _controller.pageController.hasClients) {
+    //     _controller.pageController.jumpToPage(_controller.currentWordIndex);
+    //   }
+    // });
     return Scaffold(
       appBar: AppBar(
         title: const Text('生词本'),
         actions: [
-          //TODO 添加单词
-          // IconButton(
-          //   icon: const Icon(Icons.add),
-          //   onPressed: () => _showWordDialog(),
-          // ),
           if (_controller.isListView)
             IconButton(
               icon: Icon(
@@ -91,21 +86,18 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 }
               },
             ),
-          IconButton(
-            icon: Icon(
-                _controller.isListView ? Icons.view_agenda : Icons.view_list),
-            tooltip: _controller.isListView ? '卡片视图' : '列表视图',
-            onPressed: () {
-              // final targetIndex = _controller.currentWordIndex;
-              setState(() {
-                _controller.isListView = !_controller.isListView;
-                // if (!_controller.isListView) {
-                //   _pageController
-                //       .jumpToPage(_controller.currentWordIndex);
-                // }
-              });
-            },
-          ),
+          if (widget.mode != 1)
+            IconButton(
+              icon: Icon(
+                  _controller.isListView ? Icons.view_agenda : Icons.view_list),
+              tooltip: _controller.isListView ? '卡片视图' : '列表视图',
+              onPressed: () {
+                // final targetIndex = _controller.currentWordIndex;
+                setState(() {
+                  _controller.isListView = !_controller.isListView;
+                });
+              },
+            ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.file_upload),
             onSelected: (value) {
@@ -211,8 +203,17 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   },
                   onWordTap: (int index) {
                     setState(() {
-                      _controller.currentWordIndex = index;
-                      _controller.isListView = false;
+                      if (widget.mode == 0) {
+                        _controller.currentWordIndex = index;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted &&
+                              _controller.pageController.hasClients) {
+                            _controller.pageController
+                                .jumpToPage(_controller.currentWordIndex);
+                            _controller.isListView = false;
+                          }
+                        });
+                      }
                     });
                   },
                 ),
@@ -256,14 +257,12 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                 ),
                               ],
                             ),
-                            child: Column(        
+                            child: Column(
                               children: [
                                 Padding(
-                                  padding:
-                                      const EdgeInsets.only(bottom: 28.0),
+                                  padding: const EdgeInsets.only(bottom: 28.0),
                                   child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       FilterChip(
                                         label: const Text('单词',
@@ -271,6 +270,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                         selected: _controller.showJapanese,
                                         showCheckmark: false,
                                         onSelected: (value) => setState(() {
+                                          HapticFeedback.lightImpact();
                                           _controller.showJapanese = value;
                                         }),
                                         selectedColor: Theme.of(context)
@@ -283,12 +283,11 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                       FilterChip(
                                         label: const Text('读音',
                                             style: TextStyle(fontSize: 20)),
-                                        selected:
-                                            _controller.showPronunciation,
+                                        selected: _controller.showPronunciation,
                                         showCheckmark: false,
                                         onSelected: (value) => setState(() {
-                                          _controller.showPronunciation =
-                                              value;
+                                          HapticFeedback.lightImpact();
+                                          _controller.showPronunciation = value;
                                         }),
                                         selectedColor: Theme.of(context)
                                             .primaryColor
@@ -303,6 +302,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                         selected: _controller.showMeaning,
                                         showCheckmark: false,
                                         onSelected: (value) => setState(() {
+                                          HapticFeedback.lightImpact();
                                           _controller.showMeaning = value;
                                         }),
                                         selectedColor: Theme.of(context)
@@ -318,8 +318,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     GestureDetector(
-                                      onTap: () =>
-                                          _showPageJumpDialog(context),
+                                      onTap: () => _showPageJumpDialog(context),
                                       child: Text(
                                         '${_controller.currentWordIndex + 1}/${_controller.filteredWords.length}',
                                         style: const TextStyle(fontSize: 20),

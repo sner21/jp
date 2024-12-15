@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeService extends ChangeNotifier {
   late SharedPreferences _prefs;
-  Color _themeColor = Colors.orange.shade700;
+  Color _themeColor = Colors.amber;
   // Color _themeColor = Colors.amber.shade800;
   ThemeService() {
     _loadTheme();

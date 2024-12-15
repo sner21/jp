@@ -40,9 +40,9 @@ class VocabularyController {
   bool showJapanese = true;
   bool showPronunciation = true;
   bool isListView = false;
+  int selectedIndex = 1;
   bool isSelectMode = false;
   final Set<String> selectedWords = {};
-
   VocabularyController({
     required this.storageManager,
     required this.ttsService,

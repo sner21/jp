@@ -11,6 +11,7 @@ import 'dart:developer' as developer;
 import '../widgets/import_dialogs.dart';
 import '../controllers/vocabulary_controller.dart';
 import 'package:flutter/services.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final StorageManager _storageManager =
       StorageManager(Supabase.instance.client);
   final TTSService _ttsService = TTSService();
-  int _selectedIndex = 1; // 当前选中的页面索引
+  late final List<Widget> _pages;
 
   @override
   void initState() {
@@ -54,51 +55,34 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       _vocabularyController.loadWords();
     });
+    _pages = [
+      VocabularyScreen(
+        controller: _vocabularyController, 
+        mode: 1,
+      ),
+      VocabularyScreen(
+        controller: _vocabularyController, 
+        mode: 2,
+      ),
+      const SettingsScreen(),
+    ];
   }
-
-  Future<void> _clearTTSCache() async {
-    try {
-      await _ttsService.clearCache();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('语音缓存已清理')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('清理缓存失败')),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
-      const WordListScreen(),
+      const WordListScreen(), 
       VocabularyScreen(controller: _vocabularyController),
       const SettingsScreen(),
     ];
-
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: _vocabularyController.selectedIndex,
+        children: _pages,
+      ),
       floatingActionButton: Container(
-        width: MediaQuery.of(context).size.width / 3, 
+        width: MediaQuery.of(context).size.width / 3,
         height: 50.0,
         margin: const EdgeInsets.only(top: 60),
-        // child: FloatingActionButton(
-        //   backgroundColor: _selectedIndex == 0
-        //       ? Theme.of(context).bannerTheme.backgroundColor
-        //       : Theme.of(context).appBarTheme.backgroundColor,
-        //   onPressed: () {
-        //     // 中间按钮的点击事件
-        //     setState(() {
-        //       _selectedIndex = 0; // 例如，切换到第二个页面
-        //     });
-        //   },
-        //   child: const Icon(Icons.book, size: 36), // 更大的图标
-        // ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
@@ -109,56 +93,57 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.only(bottom: 0, top: 0), // 内边距
         // clipBehavior: Clip.antiAlias, // 裁剪行为
         shape: null,
-        color: Colors.white ,
+        color: Colors.white,
         // notchMargin: -20.0,
         child: Padding(
-          padding: const EdgeInsets.only(left: 10, right: 10),
-          child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(_pages.length, (index) {
-            IconData icon;
-            switch (index) {
-              case 0:
-                icon = Icons.list;
-                break;
-              case 1:
-                icon = Icons.book;
-                break;
-              case 2:
-                icon = Icons.settings;
-                break;
-              default:
-                icon = Icons.error;
-            }
+            padding: const EdgeInsets.only(left: 10, right: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(_pages.length, (index) {
+                IconData icon;
+                switch (index) {
+                  case 0:
+                    icon = Icons.list;
+                    break;
+                  case 1:
+                    icon = Icons.book;
+                    break;
+                  case 2:
+                    icon = Icons.settings;
+                    break;
+                  default:
+                    icon = Icons.error;
+                }
 
-            return Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14.0),
-                  color: _selectedIndex == index
-                      ? Theme.of(context).appBarTheme.backgroundColor
-                      : Theme.of(context).bannerTheme.backgroundColor,
-                ),
-                child: IconButton(
-                  
-                  color: _selectedIndex == index ? Colors.white : Colors.grey,
-                  icon: AnimatedScale(
-                    scale: _selectedIndex == index ? 1.2 : 1.0, // 选中时放大1.2倍
-                    duration: const Duration(milliseconds: 200), // 动画持续时间
-                    curve: Curves.easeInOut, // 动画曲线
-                    child: Icon(icon, size: index == 0 ? 32 : 28),
+                return Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14.0),
+                      color: _vocabularyController.selectedIndex == index
+                          ? Theme.of(context).appBarTheme.backgroundColor
+                          : Theme.of(context).bannerTheme.backgroundColor,
+                    ),
+                    child: IconButton(
+                      color:
+                          _vocabularyController.selectedIndex == index ? Colors.white : Colors.grey,
+                      icon: AnimatedScale(
+                        scale: _vocabularyController.selectedIndex == index ? 1.2 : 1.0, // 选中时放大1.2倍
+                        duration: const Duration(milliseconds: 200), // 动画持续时间
+                        curve: Curves.easeInOut, // 动画曲线
+                        child: Icon(icon, size: index == 0 ? 32 : 28),
+                      ),
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        setState(() {
+                          _vocabularyController.selectedIndex = index;
+                          _vocabularyController.isListView = index == 0;
+                        });
+                      },
+                    ),
                   ),
-                  onPressed: () {
-                    HapticFeedback.lightImpact();  // 添加轻微震动反馈
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                ),
-              ),
-            );
-          }),
-        )),
+                );
+              }),
+            )),
       ),
     );
   }
